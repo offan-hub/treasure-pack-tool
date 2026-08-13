@@ -1,0 +1,2553 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>法宝背包填充助手 · 我要当老祖</title>
+<style>
+  :root {
+    --bg:#f4f6fa; --panel:#ffffff; --ink:#1f2330; --muted:#6b7280;
+    --line:#e5e7eb; --accent:#7c3aed; --accent-d:#5b21b6;
+    --accent2:#0ea5a4; --blocked:#2b2f3a; --empty:#eef1f5; --ok:#1f9d55; --warn:#d97706;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,"PingFang SC","Microsoft YaHei",Segoe UI,sans-serif;
+    background:var(--bg); color:var(--ink); font-size:14px; line-height:1.5; }
+  header { padding:16px 22px; background:linear-gradient(120deg,#5b21b6,#0ea5a4); color:#fff; }
+  header h1 { margin:0; font-size:20px; letter-spacing:.5px; }
+  header p { margin:5px 0 0; font-size:12.5px; opacity:.92; }
+  main { display:grid; grid-template-columns:minmax(0,1fr); gap:16px; padding:16px; max-width:1680px; margin:0 auto; }
+  main>section { min-width:0; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px; margin-bottom:14px; }
+  .card h2 { font-size:16px; margin:0 0 10px; }
+  .card h3 { font-size:14px; margin:0 0 8px; }
+  .row { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+  .cap { font-size:12px; color:var(--muted); margin:8px 0; }
+  label { font-size:12px; color:var(--muted); display:block; margin:8px 0 3px; }
+  select,input[type=number],input[type=text]{ width:100%; padding:6px 8px; border:1px solid var(--line);
+    border-radius:8px; font-size:13px; background:#fff; color:var(--ink); }
+  button { cursor:pointer; border:1px solid var(--line); background:#fff; color:var(--ink);
+    padding:7px 10px; border-radius:8px; font-size:13px; transition:.15s; }
+  button:hover { border-color:var(--accent); color:var(--accent); }
+  button.primary { background:var(--accent); color:#fff; border-color:var(--accent); font-weight:600; }
+  button.primary:hover { background:var(--accent-d); color:#fff; }
+  button.ghost { background:transparent; }
+  .hint { color:var(--muted); font-size:11.5px; margin-top:6px; line-height:1.5; }
+  .mt { margin-top:12px; }
+  /* 背包空间 */
+  .space-body { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:24px; align-items:start; }
+  .space-controls { display:grid; grid-template-columns:1fr 1fr; gap:8px; max-width:540px; }
+  .space-controls .full { grid-column:1 / -1; }
+  .add-fields { display:flex; flex-wrap:wrap; gap:8px 12px; margin-top:10px; max-width:560px; }
+  .add-fields>div { display:flex; flex-direction:column; gap:3px; }
+  .add-fields label { font-size:12px; color:var(--c-text-dim); }
+  .add-fields input, .add-fields select { width:122px; box-sizing:border-box; }
+  .inv-search { width:auto; min-width:140px; }
+  .grid { display:grid; gap:3px; }
+  .cell { width:26px; height:26px; border-radius:5px; background:var(--empty); border:1px solid #dfe3ea;
+    display:flex; align-items:center; justify-content:center; font-size:11px; user-select:none; }
+  .cell.tiny { width:18px; height:18px; border-radius:4px; }
+  .cell.blocked { background:var(--blocked); border-color:#1a1d26; }
+  .cell.sel { background:var(--accent); border-color:var(--accent-d); color:#fff; }
+  .cell.click { cursor:pointer; }
+  /* 法宝清单表格 */
+  .table-scroll { overflow-x:auto; overflow-y:auto; border:1px solid var(--line); border-radius:9px; max-height:480px; }
+  table.inv-table { border-collapse:collapse; width:100%; font-size:12.5px; }
+  .inv-table th, .inv-table td { border-bottom:1px solid var(--line); padding:7px 8px; text-align:left; vertical-align:middle; }
+  .inv-table thead th { position:sticky; top:0; background:#f8f9fb; z-index:5; font-weight:600; color:var(--muted); }
+  .inv-table tbody tr:hover { background:#fafbff; }
+  .inv-table input[type=number]{ width:64px; }
+  .inv-table input[type=text]{ width:120px; }
+  .inv-table select { width:100px; }
+  .inv-table select.btype, .inv-table select.battr { width:auto; min-width:120px; }
+  .inv-table .mini { display:grid; gap:2px; }
+  .inv-table .mini .mc { width:14px; height:14px; border-radius:3px; border:1px solid rgba(0,0,0,.15); }
+  .inv-table .shape-td { white-space:nowrap; }
+  .inv-table .mini-wrap { margin-bottom:3px; }
+  .inv-table .shapein { width:84px !important; padding:3px 5px !important; font-size:11px; font-family:ui-monospace,Consolas,monospace; }
+  .inv-table .del { color:#c0392b; border-color:#f0c5bf; padding:3px 8px; }
+  .inv-table .del:hover { background:#c0392b; color:#fff; border-color:#c0392b; }
+  /* 添加法宝面板 */
+  details.add-panel { margin-top:10px; border:1px solid var(--line); border-radius:9px; padding:0 10px; }
+  details.add-panel summary { cursor:pointer; padding:8px 0; font-size:13px; font-weight:600; }
+  .toolbar { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
+  .toolbar button { padding:5px 8px; font-size:12px; }
+  .empty-note{ color:var(--muted); font-size:12px; padding:10px 4px; }
+  /* 结果区 */
+  .output-wrap { display:grid; grid-template-columns:minmax(660px,1.35fr) minmax(320px,.65fr); gap:16px; align-items:start; }
+  .result-main { display:grid; grid-template-columns:auto minmax(320px,1fr); gap:24px; align-items:start; min-width:0; }
+  .plans { display:grid; grid-template-columns:repeat(2,1fr); gap:14px; }
+  @media (max-width:760px){ .plans{ grid-template-columns:1fr; } }
+  .plan-card { border:1px solid var(--line); border-radius:12px; padding:12px; background:#fcfcfe; cursor:pointer; transition:.15s; }
+  .plan-card:hover { border-color:var(--accent); }
+  .plan-card.selected { border-color:var(--accent); box-shadow:0 0 0 3px rgba(124,58,237,.18); background:#fff; }
+  .plan-card h3 { margin:0 0 8px; font-size:13.5px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .legend { display:flex; flex-wrap:wrap; gap:6px 12px; margin:8px 0; }
+  .legend .item { display:flex; align-items:center; gap:5px; font-size:11.5px; }
+  .legend .sw { width:12px; height:12px; border-radius:3px; border:1px solid rgba(0,0,0,.15); }
+  .planbar { display:flex; gap:8px; margin-top:8px; align-items:center; }
+  .plan-text { white-space:pre-wrap; font-family:Consolas,monospace; font-size:11px; background:#0f1320;
+    color:#d7e0f4; padding:10px; border-radius:8px; max-height:200px; overflow:auto; margin-top:8px; display:none; }
+  .pill { display:inline-block; padding:2px 9px; border-radius:999px; font-size:11.5px; background:#eef2ff; color:var(--accent-d); }
+  .pill.warn{ background:#fff4e5; color:var(--warn);} .pill.ok{ background:#e7f7ee; color:var(--ok);} .pill.t2{ background:#e6fbfa; color:#0b7c7b; }
+  /* 求解设置 / 统计 */
+  .embedded-solver .toolbar { margin-top:8px; }
+  .weights { display:flex; gap:8px; margin-top:8px; }
+  .weights>div { flex:1; min-width:0; }
+  .weights input { width:100%; }
+  .weights .wmsg { font-size:11px; color:var(--muted); margin-top:3px; }
+  .inv-table input[type=number].anum { width:80px; }
+  .attr-line { font-size:12px; color:var(--muted); margin:6px 0; }
+  .stats { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:10px; }
+  .stats .stat { background:#f8f9fb; border:1px solid var(--line); border-radius:9px; padding:8px 10px; }
+  .stats .stat .k { font-size:11px; color:var(--muted); }
+  .stats .stat .v { font-size:17px; font-weight:700; }
+  #statusBox { background:#0f1320; color:#d7e0f4; padding:10px; border-radius:8px; font-size:12px; white-space:pre-wrap;
+    min-height:64px; margin:8px 0 0; max-height:200px; overflow:auto; }
+  /* 方案详情面板（点击方案卡后右侧实时显示） */
+  .plan-detail { margin-top:10px; border:1px dashed var(--line); border-radius:10px; padding:10px; background:#fcfcfe; max-height:560px; overflow:auto; }
+  .plan-detail .pd-empty { color:var(--muted); font-size:12.5px; padding:8px 2px; }
+  .plan-detail h4 { margin:0 0 8px; font-size:13px; }
+  .plan-detail .pd-table { border-collapse:collapse; width:100%; font-size:12px; margin-top:8px; }
+  .plan-detail .pd-table th, .plan-detail .pd-table td { border-bottom:1px solid var(--line); padding:5px 7px; text-align:left; }
+  .plan-detail .pd-table thead th { color:var(--muted); font-weight:600; background:#f8f9fb; }
+  .plan-detail .pd-table .pd-total { font-weight:700; background:#f3f0ff; }
+  .plan-detail .pd-copy { margin-top:8px; }
+  /* 历史求解 */
+  .history-panel { margin-top:14px; border:1px solid var(--line); border-radius:9px; padding:0 10px; }
+  .history-panel summary { cursor:pointer; padding:8px 0; font-size:13px; font-weight:600; }
+  .history-list { display:flex; flex-direction:column; gap:6px; padding:4px 0 10px; }
+  .hist-row { display:flex; gap:8px; align-items:center; justify-content:space-between; border:1px solid var(--line); border-radius:8px; padding:6px 10px; }
+  .hist-info { font-size:12.5px; }
+  .hist-time { color:var(--muted); font-size:11px; margin-left:6px; }
+  /* 分段开关 */
+  .seg { display:inline-flex; border:1px solid var(--line); border-radius:8px; overflow:hidden; }
+  .seg button { border:none; background:#fff; padding:6px 11px; font-size:12px; border-radius:0; }
+  .seg button + button { border-left:1px solid var(--line); }
+  .seg button.on { background:var(--accent); color:#fff; }
+  .help-card ol { margin:6px 0 0; padding-left:20px; font-size:13px; }
+  .help-card li { margin:5px 0; }
+  /* 横屏：区域网格（与对方同构：space / library / result / help 自上而下；library 已合并为单表占满） */
+  @media (min-width:900px) and (orientation:landscape){
+    main { grid-template-columns:minmax(0,1fr); grid-template-areas:"space" "library" "result" "dmg" "help"; }
+    main>section { display:contents; }
+    .space-card { grid-area:space; }
+    .lib-card { grid-area:library; }
+    .result-card { grid-area:result; }
+    .dmg-card { grid-area:dmg; }
+    .help-card { grid-area:help; }
+  }
+  @media (max-width:899px){
+    .space-body, .output-wrap, .result-main { grid-template-columns:1fr; }
+    .output-wrap, .result-main { gap:16px; }
+  }
+  /* 组别 */
+  .group-bar { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:4px 0 0; }
+  .group-bar select { width:auto; min-width:130px; flex:0 0 auto; }
+  details.group-panel, details.cloud-panel { margin-top:10px; border:1px solid var(--line); border-radius:9px; padding:0 10px; }
+  details.group-panel summary, details.cloud-panel summary { cursor:pointer; padding:8px 0; font-size:13px; font-weight:600; }
+  .group-list { display:flex; flex-direction:column; gap:6px; padding:4px 0 10px; }
+  .group-row { display:flex; gap:8px; align-items:center; }
+  .group-row .gname { width:170px; }
+  .group-row .del { padding:3px 8px; }
+  .inv-table select.grp { width:108px; }
+  /* 重点法宝：整行高亮 + 名称/数值标红加粗 */
+  tr.key-row { background:rgba(230,52,43,0.08); }
+  tr.key-row td .nm,
+  tr.key-row td .anum,
+  tr.key-row td .brate,
+  tr.key-row td .cnum { color:#e6342b; font-weight:700; }
+  .keystar { cursor:pointer; border:none; background:none; font-size:16px; line-height:1; padding:2px 4px; color:#c7ccd6; }
+  .keystar.on { color:#e6342b; }
+  .inv-table .dt { padding:3px 8px; color:var(--accent-d); border-color:#ddd6fe; }
+  .inv-table .dt:hover { background:var(--accent); color:#fff; border-color:var(--accent); }
+  /* 详情弹窗 */
+  .modal-mask { position:fixed; inset:0; background:rgba(15,19,32,.45); display:none; z-index:100;
+    align-items:flex-start; justify-content:center; overflow:auto; padding:36px 16px; }
+  .modal-mask.on { display:flex; }
+  .modal { background:#fff; border-radius:14px; width:min(820px,100%); box-shadow:0 20px 60px rgba(0,0,0,.28); }
+  .modal-hd { display:flex; align-items:center; gap:10px; padding:13px 18px; border-bottom:1px solid var(--line); }
+  .modal-hd h3 { margin:0; font-size:15px; flex:1; }
+  .modal-bd { padding:14px 18px; max-height:68vh; overflow:auto; }
+  .modal-ft { padding:11px 18px; border-top:1px solid var(--line); display:flex; gap:8px; justify-content:flex-end; align-items:center; }
+  .modal .x { border:none; background:none; font-size:20px; line-height:1; color:var(--muted); padding:2px 6px; }
+  .kv { display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:9px 14px; }
+  .kv .k { font-size:11px; color:var(--muted); }
+  .kv .v { font-size:13.5px; font-weight:600; }
+  .sk-seg { border:1px solid var(--line); border-radius:10px; padding:10px; margin-top:8px; background:#fcfcfe; }
+  .sk-seg h5 { margin:0 0 6px; font-size:12.5px; display:flex; align-items:center; gap:8px; }
+  .sk-seg h5 span.badge { font-size:10.5px; padding:1px 7px; border-radius:999px; background:#eef2ff; color:var(--accent-d); font-weight:600; }
+  .sk-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(86px,1fr)); gap:5px 8px; }
+  .sk-grid label { margin:0 0 2px; }
+  .sk-grid input { padding:4px 6px; font-size:12px; }
+  .sk-sub { font-size:11.5px; color:var(--accent-d); margin:9px 0 1px; font-weight:600; }
+  .sk-note { width:100%; padding:5px 7px; border:1px solid var(--line); border-radius:7px; font-size:12px; }
+  /* 伤害计算模块 */
+  .dmg-top { display:grid; grid-template-columns:minmax(300px,350px) minmax(0,1fr); gap:18px; align-items:start; }
+  @media (max-width:899px){ .dmg-top { grid-template-columns:1fr; } }
+  .dmg-order { border:1px solid var(--line); border-radius:10px; padding:10px; background:#fcfcfe; }
+  .ord-list { display:flex; flex-direction:column; gap:4px; max-height:430px; overflow:auto; margin-top:8px; }
+  .ord-item { display:flex; align-items:center; gap:6px; border:1px solid var(--line); border-radius:8px;
+    padding:5px 8px; background:#fff; font-size:12.5px; cursor:grab; }
+  .ord-item.dragging { opacity:.35; }
+  .ord-item.over { border-color:var(--accent); box-shadow:0 0 0 2px rgba(124,58,237,.16); }
+  .ord-item .no { width:22px; color:var(--muted); font-size:11px; flex:0 0 auto; }
+  .ord-item .nmx { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .ord-item .tag { font-size:10.5px; padding:1px 6px; border-radius:999px; background:#eef2ff; color:var(--accent-d); flex:0 0 auto; }
+  .ord-item .tag.mute { background:#f1f3f7; color:var(--muted); }
+  .ord-item .tag.bad { background:#fdecea; color:#c0392b; }
+  .ord-item .mv { padding:0 6px; font-size:12px; line-height:1.6; flex:0 0 auto; }
+  .trait-box { margin-top:10px; border:1px dashed var(--line); border-radius:9px; padding:9px 11px; background:#f8f9fb; }
+  .trait-box .t { font-size:12px; margin:3px 0; color:#3b4252; }
+  .trait-box .t b { color:var(--accent-d); }
+  .bar { height:7px; border-radius:999px; background:#eef1f5; overflow:hidden; min-width:52px; }
+  .bar i { display:block; height:100%; background:var(--accent); }
+  .dmg-table { border-collapse:collapse; width:100%; font-size:12px; }
+  .dmg-table th, .dmg-table td { border-bottom:1px solid var(--line); padding:5px 7px; text-align:right; }
+  .dmg-table th:first-child, .dmg-table td:first-child { text-align:left; }
+  .dmg-table thead th { background:#f8f9fb; color:var(--muted); font-weight:600; }
+  .dmg-table tr.rd { cursor:pointer; }
+  .dmg-table tr.rd:hover { background:#fafbff; }
+  .dmg-table tr.sub td { background:#fbfcfe; font-size:11.5px; color:#444; }
+  .dmg-table tr.sumrow td { font-weight:700; background:#f3f0ff; }
+  .dmg-sec { margin-top:14px; }
+  .dmg-sec h3 { margin:0 0 8px; font-size:13.5px; }
+  .dmg-cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:9px; margin-top:8px; }
+  .dmg-cards .st { border:1px solid var(--line); border-radius:9px; padding:9px 11px; background:#f8f9fb; }
+  .dmg-cards .st .k { font-size:11px; color:var(--muted); }
+  .dmg-cards .st .v { font-size:18px; font-weight:700; }
+  .dmg-cards .st .d { font-size:11.5px; margin-top:2px; }
+  .up { color:#e6342b; } .down { color:#1f9d55; } .flat { color:var(--muted); }
+  .share-row { display:flex; align-items:center; gap:8px; margin:5px 0; font-size:12px; }
+  .share-row .lb { width:96px; flex:0 0 auto; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .share-row .bar { flex:1; }
+  .share-row .pc { width:112px; text-align:right; flex:0 0 auto; font-variant-numeric:tabular-nums; }
+  .dmg-warn { border:1px solid #f5c6a5; background:#fff7ed; color:#9a3412; border-radius:9px; padding:8px 11px; font-size:12px; margin-top:8px; }
+  #dmgSchool { width:200px; max-width:100%; }
+  #dmgOverview { margin-top:11px; }
+  #dmgOverview .dmg-sec { margin-top:0; }
+  .dmg-school { margin-top:12px; border:1px solid var(--line); border-radius:11px; padding:11px 13px; background:#fbfcfe; }
+  .dmg-school .ds-head { font-size:13px; font-weight:600; margin-bottom:8px; }
+  .dmg-school .ds-head b { color:var(--accent,#2b6cb0); }
+  .dmg-school .sk-name-input { width:150px; }
+  .dmg-import { margin-top:12px; border-top:1px dashed var(--line); padding-top:10px; }
+  .dmg-import summary { cursor:pointer; font-weight:600; color:var(--accent,#2b6cb0); font-size:12.5px; }
+  .dmg-import textarea { width:100%; box-sizing:border-box; margin-top:8px; font-family:monospace; font-size:12px; padding:8px; border:1px solid var(--line); border-radius:8px; resize:vertical; }
+  .dmg-import code { background:#eef1f6; padding:1px 4px; border-radius:4px; font-size:11px; word-break:break-all; }
+  .dt-info-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:9px; margin-top:8px; }
+  .dt-info-card { border:1px solid var(--line); border-radius:9px; padding:9px 11px; background:#f8f9fb; }
+  .dt-info-card .dt-info-title { font-size:11px; color:var(--muted); margin-bottom:2px; }
+  .dt-info-card .dt-info-body { font-size:13.5px; font-weight:600; word-break:break-all; }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+<header>
+  <h1>法宝背包填充助手</h1>
+  <p>「我要当老祖」辅助工具 · 不旋转多连块背包最大填充 · 灵枢宝鉴录入法宝，一键生成多套填充方案（含属性计算器）</p>
+</header>
+
+<main>
+  <section>
+    <!-- 1. 当前背包空间 -->
+    <div class="card space-card">
+      <h2>1. 当前背包空间</h2>
+      <div class="space-body">
+        <div class="space-controls">
+          <div><label>宽度（列 C）</label><input type="number" id="cols" min="1" max="12" value="7"></div>
+          <div><label>高度（行 R）</label><input type="number" id="rows" min="1" max="12" value="6"></div>
+          <div class="full"><label>背包预设</label>
+            <select id="preset">
+              <option value="custom">自定义</option>
+              <option value="4x4c">4×4 缺左上角（15 格）</option>
+              <option value="5x5">5×5（25 格）</option>
+              <option value="5x6">5×6（30 格）</option>
+              <option value="6x6">6×6（36 格）</option>
+              <option value="6x7" selected>6×7 满背包（42 格）</option>
+            </select>
+          </div>
+          <div class="full"><label>点击格子切换「障碍格」（深色 = 不可放；其余参与填充）</label></div>
+          <div><button id="applySize" class="ghost">应用行列</button></div>
+          <div><button id="clearBlocked" class="ghost">清空障碍</button></div>
+        </div>
+        <div>
+          <div id="spaceGrid" class="grid" style="width:max-content"></div>
+          <div class="cap" id="capInfo"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. 灵枢宝鉴（法宝清单，等价于对方「已有物品清单」表格；对方多余的「物品库模板/品质/旋转」等功能已删除） -->
+    <div class="card lib-card">
+      <h2>2. 灵枢宝鉴（法宝清单）</h2>
+      <div class="row">
+        <button id="selAll" class="ghost">全选</button>
+        <button id="selNone" class="ghost">全不选</button>
+        <button id="clearLib" class="ghost">清空宝鉴库</button>
+        <button id="importBase" class="ghost">导入基础法宝库</button>
+        <button id="importFile" class="ghost">📥 导入法宝库（Excel/CSV）</button>
+        <input type="file" id="fileImport" accept=".xlsx,.xls,.csv" style="display:none">
+        <span class="cap" style="margin:0 0 0 6px">已入册 <b id="libCount">0</b> 件 · 自动保存到本机，下次打开自动恢复</span>
+        <span style="flex:1"></span>
+        <input type="text" id="libSearch" class="inv-search" placeholder="搜索法宝名称…">
+        <select id="groupFilter" style="width:auto;min-width:130px">
+          <option value="all">全部组别</option>
+          <option value="ungrouped">未分组</option>
+        </select>
+        <select id="invSort" style="width:auto;min-width:155px" title="法宝排序方式">
+          <option value="cnt">排序：数量↓ · 格子↓</option>
+          <option value="name">排序：名称</option>
+          <option value="group">排序：组别</option>
+          <option value="none">排序：录入顺序</option>
+        </select>
+        <div class="seg" id="libFilter">
+          <button data-f="all">全部法宝</button>
+          <button data-f="on" class="on">已启用</button>
+          <button data-f="off">未启用</button>
+        </div>
+      </div>
+      <div class="table-scroll mt">
+        <table class="inv-table">
+          <thead><tr>
+            <th style="text-align:center">启用</th><th>名称</th><th style="text-align:center">重点</th><th>形状</th><th>组别</th>
+            <th>生命</th><th>防御</th><th>攻击</th><th>加成率%</th><th>加成类型</th><th>加成属性</th><th>数量</th><th style="text-align:center">优先</th><th>操作</th>
+          </tr></thead>
+          <tbody id="invBody"></tbody>
+        </table>
+      </div>
+      <div class="cap" id="invSummary"></div>
+      <details class="group-panel">
+        <summary>组别管理</summary>
+        <div class="row" style="margin-top:8px">
+          <input type="text" id="newGroupName" placeholder="新组名称" style="width:170px">
+          <button id="newGroup" class="primary">＋ 新建组别</button>
+        </div>
+        <div class="group-list" id="groupList"></div>
+      </details>
+      <details class="cloud-panel" open>
+        <summary>云端同步</summary>
+        <div class="row" style="margin-top:8px;align-items:flex-end">
+          <div><label>GitHub Token</label><input type="text" id="cloudUrl" placeholder="ghp_xxxxxxxxxxxx" style="width:300px"></div>
+          <div><label>Gist ID（可空）</label><input type="text" id="cloudKey" placeholder="首次推送后自动生成" style="width:260px"></div>
+          <label style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="cloudOn"> 启用同步</label>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <button id="cloudPull" class="ghost">⬇ 从 Gist 拉取</button>
+          <button id="cloudPush" class="ghost">⬆ 立即推送到 Gist</button>
+          <button id="cloudForce" class="ghost" title="清空 Gist 中所有旧法宝/组别，仅用当前本地数据覆盖（慎用）">🗑 强制覆盖 Gist</button>
+          <span id="cloudStatus" class="cap" style="margin-left:6px"></span>
+        </div>
+      </details>
+      <details class="add-panel">
+        <summary>添加法宝</summary>
+        <label>快捷形状（点击直接收入宝鉴）</label>
+        <div class="toolbar" id="quickShapes"></div>
+        <label class="mt">手绘法宝（点击格子组成形状，不可旋转）</label>
+        <div id="drawGrid" class="grid" style="width:max-content"></div>
+        <div class="space-controls" style="margin-top:8px;max-width:420px">
+          <div><label>名称</label><input type="text" id="drawName" placeholder="如：L型法宝"></div>
+          <div><label>数量</label><input type="number" id="drawCount" min="0" max="99" value="1"></div>
+        </div>
+        <label class="mt">属性与加成（可直接标注全部信息，录入即生效）</label>
+        <div class="add-fields">
+          <div><label>组别</label><select id="drawGroup"></select></div>
+          <div><label>生命</label><input type="number" id="drawHp" min="0" value="0"></div>
+          <div><label>防御</label><input type="number" id="drawDef" min="0" value="0"></div>
+          <div><label>攻击</label><input type="number" id="drawAtk" min="0" value="0"></div>
+          <div><label>加成率%</label><input type="number" id="drawBRate" min="0" value="0"></div>
+          <div><label>加成类型</label><select id="drawBType"><option value="none">无加成</option><option value="self">自身受加成</option><option value="buff">给他人加成</option></select></div>
+          <div><label>加成属性</label><select id="drawBAttr"><option value="hp">生命值</option><option value="def">防御力</option><option value="atk">攻击力</option></select></div>
+        </div>
+        <button id="addDraw" class="primary mt" style="width:100%">＋ 收入宝鉴</button>
+      </details>
+    </div>
+  </section>
+
+  <section>
+    <!-- 3. 自动填充与摆放结果（等价于对方「自动搜索与当前最佳摆放结果」；其「搜索档位/节点/并行/截图识别」等额外功能已删除） -->
+    <div class="card result-card">
+      <h2>3. 自动填充与摆放结果</h2>
+      <div class="output-wrap">
+        <div class="result-main">
+          <div class="result-grid-block">
+            <div class="plans" id="plans"></div>
+          </div>
+          <div class="embedded-solver">
+            <h3>求解设置</h3>
+            <button id="solve" class="primary" style="width:100%">⚡ 一键生成填充方案</button>
+            <label class="mt">排序</label>
+            <select id="sortMode" style="width:100%">
+              <option value="default">默认（求解排序）</option>
+              <option value="attr">按属性总分</option>
+              <option value="score">按相邻法宝数</option>
+              <option value="fill">按填充率</option>
+            </select>
+            <label class="mt">属性权重占比（用于「按属性总分」排序，三者合计 100）</label>
+            <div class="weights">
+              <div><label>生命值</label><input type="number" id="wHp" min="0" max="100" value="34"></div>
+              <div><label>攻击力</label><input type="number" id="wAtk" min="0" max="100" value="33"></div>
+              <div><label>防御力</label><input type="number" id="wDef" min="0" max="100" value="33"></div>
+            </div>
+            <div class="wmsg" id="wMsg"></div>
+            <div class="toolbar">
+              <button id="exportCfg" class="ghost">📤 复制输入配置</button>
+              <button id="saveCfg" class="ghost">💾 保存配置</button>
+              <button id="loadCfg" class="ghost">📂 读取配置</button>
+              <button id="exportResult" class="ghost" disabled>📊 导出结果JSON</button>
+            </div>
+            <input type="file" id="fileInput" accept="application/json,.json" style="display:none">
+            <div id="exportBox" style="display:none;margin-top:8px"></div>
+            <div class="stats" id="statsBlock"></div>
+            <div class="plan-detail" id="planDetail"><div class="pd-empty">点击左侧任意方案，此处实时显示该方案的摆放与属性详情。</div></div>
+            <pre id="statusBox" style="display:none">尚未计算。</pre>
+            <details class="history-panel">
+              <summary>历史求解（最多 10 条，点击「还原」可恢复当时的法宝组合与结果）</summary>
+              <div class="row" style="margin-top:8px">
+                <button id="saveHistory" class="ghost">💾 保存当前求解到历史</button>
+                <button id="clearHistory" class="ghost">清空历史</button>
+              </div>
+              <div id="historyList" class="history-list"></div>
+            </details>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. 法宝伤害计算 -->
+    <div class="card dmg-card">
+      <h2>4. 法宝伤害计算</h2>
+      <div class="dmg-top">
+        <div class="dmg-order">
+          <label>计算组别</label>
+          <select id="dmgGroup"></select>
+          <div class="row" style="margin-top:9px">
+            <button id="dmgLoad" class="ghost">↻ 从宝鉴读取</button>
+            <button id="dmgBest" class="ghost" title="搜索期望伤害最高的释放顺序">🔍 求最优顺序</button>
+          </div>
+          <div class="cap" id="dmgOrderInfo" style="margin:8px 0 0">尚未读取。</div>
+          <div class="ord-list" id="dmgOrder"></div>
+          <div class="hint">拖拽条目或用 ▲▼ 调整释放顺序；件数取自灵枢宝鉴「数量」列，数量为 0 的不参与。</div>
+        </div>
+        <div>
+          <label>角色基础属性（面板值，不含法宝增益）</label>
+          <div class="add-fields">
+            <div><label>攻击力</label><input type="number" id="dmgAtk" min="0" value="22380"></div>
+            <div><label>防御力</label><input type="number" id="dmgDef" min="0" value="10603"></div>
+            <div><label>最大生命</label><input type="number" id="dmgHp" min="0" value="1089780"></div>
+            <div><label>计算回合数</label><input type="number" id="dmgRounds" min="1" max="30" value="10"></div>
+          </div>
+          <div class="dmg-school" id="dmgSchoolBox" style="display:none">
+            <div class="ds-head" id="dmgSchoolHead" style="display:none">流派：<b>体系</b></div>
+            <div class="trait-box" id="dmgSchoolRules" style="display:none"></div>
+            <details class="dmg-import">
+              <summary>导入流派公式</summary>
+              <textarea id="dmgSchoolJson" rows="5" placeholder='粘贴流派公式 JSON'></textarea>
+              <div class="row" style="margin-top:6px;align-items:center;gap:8px;flex-wrap:wrap">
+                <button id="dmgImportSchool" class="ghost">📥 导入流派公式</button>
+                <button id="dmgSchoolFileBtn" class="ghost">📂 选择文件</button>
+                <input type="file" id="dmgSchoolFile" accept="application/json,.json" style="display:none">
+                <span id="dmgImportMsg" class="cap"></span>
+              </div>
+            </details>
+            <details class="dmg-import">
+              <summary>GitHub 同步 / 上传流派</summary>
+              <div class="row" style="margin-top:6px;align-items:center;gap:8px;flex-wrap:wrap">
+                <input id="dmgSyncUrl" type="text" value="https://gist.githubusercontent.com/offan-hub/5bff74a9d426f0c22393a71ce813275c/raw/schools.json" placeholder="https://raw.githubusercontent.com/用户名/仓库/main/schools.json" style="flex:1;min-width:260px">
+                <button id="dmgSyncBtn" class="ghost">🔄 从 GitHub 同步</button>
+                <span id="dmgSyncMsg" class="cap"></span>
+              </div>
+              <div class="row" style="margin-top:6px;align-items:center;gap:8px;flex-wrap:wrap">
+                <input id="dmgGhToken" type="password" placeholder="GitHub Token（仅存本机）" style="width:260px">
+                <input id="dmgGhGist" type="text" placeholder="Gist ID（可空=新建）" style="width:200px">
+                <button id="dmgUploadBtn" class="ghost">📤 上传到 GitHub</button>
+                <span id="dmgUploadMsg" class="cap"></span>
+              </div>
+            </details>
+            <div class="row" style="align-items:flex-end;gap:16px;flex-wrap:wrap">
+              <div>
+                <label>选择流派</label>
+                <select id="dmgSchool"></select>
+              </div>
+              <div>
+                <label>流派命名</label>
+                <button id="dmgSchoolEdit" class="ghost" disabled title="选择流派后方可重命名">✎ 编辑名称</button>
+              </div>
+            </div>
+          </div>
+          <div class="row" style="margin-top:11px">
+            <button id="dmgRun" class="primary">⚔ 计算伤害</button>
+            <button id="dmgLock" class="ghost" title="把本次结果固定为对比基准，之后每次计算都与它比较">📌 锁定为基准</button>
+            <button id="dmgClearBase" class="ghost">清除基准</button>
+            <span class="cap" id="dmgMsg" style="margin:0 0 0 4px"></span>
+          </div>
+          <div id="dmgOverview"></div>
+        </div>
+      </div>
+      <div id="dmgOut"></div>
+    </div>
+
+  </section>
+</main>
+
+<!-- 法宝详情弹窗 -->
+<div class="modal-mask" id="dtMask">
+  <div class="modal">
+    <div class="modal-hd"><h3 id="dtTitle">法宝详情</h3><button class="x" id="dtX">×</button></div>
+    <div class="modal-bd" id="dtBody"></div>
+    <div class="modal-ft">
+      <span class="cap" id="dtMsg" style="margin:0;flex:1"></span>
+      <button id="dtCancel" class="ghost">取消</button>
+      <button id="dtSave" class="primary">保存</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===================== 求解器核心（与 pack-core.js 一致，已通过 Node 测试） ===================== */
+(function (global) {
+  'use strict';
+  function mulberry32(a){ return function(){ a|=0; a=(a+0x6D2B79F5)|0; let t=Math.imul(a^(a>>>15),1|a); t=(t+Math.imul(t^(t>>>7),61|t))^t; return ((t^(t>>>14))>>>0)/4294967296; }; }
+  function shuffle(arr,rng){ for(let i=arr.length-1;i>0;i--){ const j=Math.floor(rng()*(i+1)); const t=arr[i]; arr[i]=arr[j]; arr[j]=t; } return arr; }
+  function normalizeShape(cells){ if(!cells.length) return []; let minR=Infinity,minC=Infinity; for(const [r,c] of cells){ if(r<minR)minR=r; if(c<minC)minC=c; } return cells.map(([r,c])=>[r-minR,c-minC]).sort((a,b)=>a[0]-b[0]||a[1]-b[1]); }
+  function shapeBounds(cells){ let h=0,w=0; for(const [r,c] of cells){ if(r+1>h)h=r+1; if(c+1>w)w=c+1; } return {h,w}; }
+  function enumeratePlacements(R,C,shape,blocked){ const {h,w}=shapeBounds(shape); const placements=[]; for(let r0=0;r0<=R-h;r0++){ for(let c0=0;c0<=C-w;c0++){ const idxs=[]; let ok=true; for(const [r,c] of shape){ const idx=(r0+r)*C+(c0+c); if(blocked[idx]){ok=false;break;} idxs.push(idx); } if(ok) placements.push(idxs); } } return placements; }
+  /* —— 基础填充：单一目标（最大化填充率），构造式贪心 + 多策略偏好，极快 —— */
+  function canPlace(pl,occ){ for(const idx of pl) if(occ[idx]) return false; return true; }
+  function placeOn(pl,occ){ for(const idx of pl) occ[idx]=1; }
+  function strategyScore(pl,R,C,strategy){
+    let minR=Infinity,minC=Infinity,maxR=-1,maxC=-1,sumR=0,sumC=0;
+    for(const idx of pl){ const r=(idx/C)|0,c=idx%C; if(r<minR)minR=r; if(c<minC)minC=c; if(r>maxR)maxR=r; if(c>maxC)maxC=c; sumR+=r; sumC+=c; }
+    const cr=sumR/pl.length, cc=sumC/pl.length, midR=(R-1)/2, midC=(C-1)/2;
+    switch(strategy){
+      case 'topleft':  return -(minR*C+minC);
+      case 'center':   return -(Math.abs(cr-midR)+Math.abs(cc-midC));
+      case 'corners':  { const d=Math.min(minR+minC, minR+(C-1-maxC), (R-1-maxR)+minC, (R-1-maxR)+(C-1-maxC)); return -d; }
+      case 'diagonal': { let s=0; for(const idx of pl){ const r=(idx/C)|0,c=idx%C; s-=Math.abs(r-c); } return s/pl.length; }
+      default:         return -(minR*C+minC);
+    }
+  }
+  function greedyFill(R,C,blocked,infos,strategy,rng){
+    const total=R*C; const occ=Uint8Array.from(blocked); const counts=infos.map(p=>p.count); const used=[];
+    const hasPrio=infos.some(p=>p.priority);
+    let order=infos.map((p,pi)=>pi);
+    // 勾选优先时：优先法宝先放、且放内部（自身邻接空位最多 → 才能逼近“相邻法宝数=上限”），其余照常
+    if(hasPrio) order.sort((a,b)=>(infos[b].priority-infos[a].priority)||(infos[b].size-infos[a].size)||(rng?rng()*2-1:0));
+    else if(rng) order.sort((a,b)=>(infos[b].size-infos[a].size)||(rng()*2-1));
+    else order.sort((a,b)=>infos[b].size-infos[a].size);
+    for(const pi of order){
+      while(counts[pi]>0){
+        const pls=infos[pi].placements; let best=-1,bs=-Infinity;
+        for(let k=0;k<pls.length;k++){ if(!canPlace(pls[k],occ)) continue;
+          const s = infos[pi].priority ? perimFree(pls[k],R,C,blocked) : (strategy==='random'?rng():strategyScore(pls[k],R,C,strategy));
+          if(s>bs){bs=s;best=k;} }
+        if(best<0) break; placeOn(pls[best],occ); counts[pi]--; used.push({pi,pIdx:best});
+      }
+    }
+    let filled=0; for(let i=0;i<total;i++) if(occ[i]&&!blocked[i]) filled++;
+    return {filled,used,occ};
+  }
+  /* —— 后置评估：优先法宝“相邻法宝数量”——统计每个优先法宝四周相邻的【不同法宝实例】个数
+         （围一圈 1×1 得 8、围一圈 2×2 得 4；上限由该法宝的邻接空位数决定，障碍格不计） —— */
+  function neighborScore(R,C,occ,blocked,used,infos,prioritySet,instAt){
+    let sc=0;
+    used.forEach((u,instId)=>{
+      if(!prioritySet.has(infos[u.pi].name)) return;
+      const nb=new Set();
+      for(const idx of infos[u.pi].placements[u.pIdx]){
+        const r=(idx/C)|0,c=idx%C; const ns=[];
+        if(r>0)ns.push(idx-C); if(r<R-1)ns.push(idx+C); if(c>0)ns.push(idx-1); if(c<C-1)ns.push(idx+1);
+        for(const n of ns){ if(occ[n]&&!blocked[n]){ const oi=instAt[n]; if(oi>=0&&oi!==instId) nb.add(oi); } }
+      }
+      sc+=nb.size;
+    });
+    return sc;
+  }
+  /* —— 后置启发式：放置某块时的评分（目标感知）
+        - edges：贴着越多已占格越紧凑；
+        - 若贴到“优先法宝”：只贴 1 个邻接格 → 重奖（贡献 1 个互异邻居）；贴 2 个以上 → 重罚
+          （一块占满优先法宝多个邻接位会让互异邻居数变少，必须避免）；
+        - 优先法宝自身：奖励“自身邻接空位数”多（潜在可贴边上限更高）。 —— */
+  function perimFree(pl,R,C,blocked){ const own=new Set(pl); let n=0; for(const idx of pl){ const r=(idx/C)|0,c=idx%C; const ns=[[r-1,c],[r+1,c],[r,c-1],[r,c+1]]; for(const [nr,nc] of ns){ if(nr<0||nr>=R||nc<0||nc>=C) continue; const ni=nr*C+nc; if(blocked[ni]||own.has(ni)) continue; n++; } } return n; }
+  function heurScore(pl,occ,instAt,instName,selfId,isPrio,prioritySet,R,C,blocked){
+    let edges=0; const touchedPrio=new Set(); let prioTouchEdges=0;
+    for(const idx of pl){ const r=(idx/C)|0,c=idx%C; const ns=[[r-1,c],[r+1,c],[r,c-1],[r,c+1]];
+      for(const [nr,nc] of ns){ if(nr<0||nr>=R||nc<0||nc>=C) continue; const n=nr*C+nc;
+        if(occ[n]){ edges++; const oi=instAt[n]; if(oi>=0&&oi!==selfId&&prioritySet.has(instName[oi])){ touchedPrio.add(oi); prioTouchEdges++; } } } }
+    let h=edges;
+    if(touchedPrio.size>0){ h += 60*touchedPrio.size - 45*(prioTouchEdges - touchedPrio.size); }
+    if(isPrio) h+=perimFree(pl,R,C,blocked)*25+80;
+    return h;
+  }
+  /* —— 后置优化：目标感知的 ruin‑recreate 局部搜索（随机游走 + 接受更优）
+        邻域更大（每次移除 1~5 块，足以协调出 9 个互异邻居），对“用不同法宝贴优先法宝周边”给奖励，
+        保证只在满填充（不改变填充率）的重构里接受，并始终跟踪全局最优。 —— */
+  function refineFill(R,C,regionOcc,blocked,infos,prioritySet,K,seed,initUsed){
+    const total=R*C;
+    function build(used){ const occ=Uint8Array.from(blocked); const instAt=new Array(total).fill(-1); const instName=new Array(used.length).fill(null); used.forEach((u,instId)=>{ instName[instId]=infos[u.pi].name; for(const idx of infos[u.pi].placements[u.pIdx]){ occ[idx]=1; instAt[idx]=instId; } }); return {occ,instAt,instName}; }
+    function scoreOf(used){ const {occ,instAt}=build(used); return neighborScore(R,C,occ,blocked,used,infos,prioritySet,instAt); }
+    let regionCount=0; for(let i=0;i<total;i++) if(!blocked[i]) regionCount++;
+    let current=initUsed.slice();
+    let best={used:current.slice(),score:scoreOf(current)};
+    for(let it=0;it<K;it++){
+      const rng=mulberry32((seed+it*0x85EBCA6B)>>>0);
+      const work=current.slice();
+      const removeN=1+Math.floor(rng()*5);
+      const pool=[...Array(work.length).keys()]; const idxs=[];
+      for(let q=0;q<removeN&&pool.length;q++){ const j=Math.floor(rng()*pool.length); idxs.push(pool[j]); pool.splice(j,1); }
+      const removed=idxs.map(i=>work[i]);
+      const remaining=work.filter((_,i)=>!idxs.includes(i));
+      const occ2=Uint8Array.from(blocked); const instAt2=new Array(total).fill(-1); const instName2=new Array(remaining.length).fill(null);
+      remaining.forEach((u,instId)=>{ instName2[instId]=infos[u.pi].name; for(const idx of infos[u.pi].placements[u.pIdx]){ occ2[idx]=1; instAt2[idx]=instId; } });
+      const order=removed.slice().sort((a,b)=>(infos[b.pi].priority-infos[a.pi].priority)||(rng()*2-1));
+      let ok=true; const newUsed=remaining.slice(); let nextId=remaining.length;
+      for(const u of order){
+        const pls=infos[u.pi].placements; let bj=-1,bh=-Infinity;
+        for(let j=0;j<pls.length;j++){ if(!canPlace(pls[j],occ2)) continue; const h=heurScore(pls[j],occ2,instAt2,instName2,nextId,infos[u.pi].priority,prioritySet,R,C,blocked); if(h>bh){bh=h;bj=j;} }
+        if(bj<0){ ok=false; break; }
+        placeOn(pls[bj],occ2); const instId=nextId++; for(const idx of pls[bj]) instAt2[idx]=instId; instName2[instId]=infos[u.pi].name;
+        newUsed.push({pi:u.pi,pIdx:bj});
+      }
+      if(ok){ let f=0; for(let i=0;i<total;i++) if(occ2[i]&&!blocked[i]) f++; if(f===regionCount){ const sc=scoreOf(newUsed); if(sc>best.score) best={used:newUsed.slice(),score:sc}; current=newUsed; } }
+    }
+    return best;
+  }
+  // 按“每件法宝的摆放（类型+具体位置）”生成签名：满填充方案彼此占用格相同，必须用摆放区分，否则会被错误合并
+  function sigOfUsed(used,infos,R,C){ const owner=new Array(R*C).fill('.'); used.forEach((u,instId)=>{ const lab=infos[u.pi].name+'#'+(u.pIdx); for(const idx of infos[u.pi].placements[u.pIdx]) owner[idx]=lab; }); return owner.join(','); }
+
+  /* —— 计算某组已占用格的“邻接壳”（4-邻接、非障碍、非占用本身） —— */
+  function shellMaskOf(R,C,occ,blocked){
+    const m=new Uint8Array(R*C);
+    for(let idx=0;idx<R*C;idx++){
+      if(!occ[idx]||blocked[idx]) continue;
+      const r=(idx/C)|0,c=idx%C;
+      const ns=[[r-1,c],[r+1,c],[r,c-1],[r,c+1]];
+      for(const [nr,nc] of ns){ if(nr<0||nr>=R||nc<0||nc>=C) continue; const ni=nr*C+nc; if(!blocked[ni]&&!occ[ni]) m[ni]=1; }
+    }
+    return m;
+  }
+  /* —— 由 used 重建占用/实例映射（供评分） —— */
+  function buildState(R,C,blocked,used,infos){
+    const occ=Uint8Array.from(blocked); const instAt=new Array(R*C).fill(-1);
+    used.forEach((u,instId)=>{ for(const idx of infos[u.pi].placements[u.pIdx]){ occ[idx]=1; instAt[idx]=instId; } });
+    return {occ,instAt};
+  }
+  /* —— 有界精确回溯填充（方案 A 核心）——
+       在 occ 已放置优先法宝的基础上，把其余法宝精确铺满剩余格。
+       关键约束：任一块不得覆盖 ≥2 个壳格（否则一个实例占 2 壳格 → 互异邻居上限被压低）。
+       在此约束下的完全填充必使每个壳格各被一个互异实例占据 → 分数 = 壳格数（理论极限）。 —— */
+  function exactPack(R,C,blocked,infos,startOcc,startInstAt,startUsed,startCounts,startId,shellMask,opts){
+    opts=opts||{};
+    const total=R*C;
+    const nodeCap=opts.nodeCap||120000;
+    const deadline=opts.deadline||Infinity;
+    const rng=opts.rng||Math.random;
+    const counter={n:0,abort:false};
+    const plByCell=infos.map(info=>{ const map=new Array(total); for(let i=0;i<total;i++) map[i]=[]; info.placements.forEach((pl,pi)=>{ for(const idx of pl) map[idx].push(pi); }); return map; });
+    function orderTypes(counts){
+      const arr=[]; for(let pi=0;pi<infos.length;pi++) if(counts[pi]>0) arr.push(pi);
+      arr.sort((a,b)=> (infos[b].size-infos[a].size) || (rng()*2-1)); return arr;
+    }
+    const occ=Uint8Array.from(startOcc);
+    const instAt=startInstAt.slice();
+    const used=startUsed.slice();
+    const counts=startCounts.slice();
+    let nextId=startId;
+    function placeValid(pl){ for(const idx of pl){ if(occ[idx]||blocked[idx]) return false; } return true; }
+    function shellHits(pl){ let h=0; for(const idx of pl){ if(shellMask[idx]){ if(++h>=2) return h; } } return h; }
+    function fill(){
+      if(counter.abort) return null;
+      if(++counter.n>nodeCap){ counter.abort=true; return null; }
+      if(Date.now()>deadline){ counter.abort=true; return null; }
+      let bestCell=-1,bestOpts=Infinity;
+      for(let idx=0;idx<total;idx++){
+        if(occ[idx]||blocked[idx]) continue;
+        let oc=0;
+        for(let pi=0;pi<infos.length;pi++){ if(counts[pi]<=0) continue; const lst=plByCell[pi][idx]; for(let k=0;k<lst.length;k++){ if(placeValid(infos[pi].placements[lst[k]])){ oc++; break; } } }
+        if(oc<bestOpts){ bestOpts=oc; bestCell=idx; if(oc===0) break; }
+      }
+      if(bestCell<0) return used.slice();
+      const types=orderTypes(counts);
+      for(const pi of types){
+        const lst=plByCell[pi][bestCell];
+        for(let k=0;k<lst.length;k++){
+          const pl=infos[pi].placements[lst[k]];
+          if(!placeValid(pl)) continue;
+          if(shellHits(pl)>=2) continue;
+          for(const idx of pl) occ[idx]=1;
+          const id=nextId++; instAt[bestCell]=id; for(const idx of pl) instAt[idx]=id;
+          used.push({pi,pIdx:lst[k]}); counts[pi]--;
+          const res=fill();
+          if(res) return res;
+          counts[pi]++; used.pop();
+          for(const idx of pl){ occ[idx]=0; instAt[idx]=-1; }
+          nextId--;
+        }
+      }
+      return null;
+    }
+    return fill();
+  }
+  /* —— 统一输出构造 —— */
+  function buildOutput(plans,infos,R,C,blocked,capacity,blockedCount,cnt,runs,poolSize,bestFill){
+    const top=plans.slice(0,cnt);
+    return top.map(c=>({
+      filled:c.fill, capacity, blocked:blockedCount,
+      placements:c.used.map(u=>{ const info=infos[u.pi]; const idxs=info.placements[u.pIdx]; const cells=idxs.map(idx=>[((idx/C)|0),idx%C]); const minR=Math.min(...cells.map(x=>x[0])),minC=Math.min(...cells.map(x=>x[1])); return {name:info.name,size:info.size,anchor:[minR,minC],cells}; }),
+      score:c.score, timedOut:false, optimal:true, nodes:runs, poolSize, bestFill, runs
+    }));
+  }
+  /* —— 基线：生成-筛选分离（贪心基础填充 + 后置 ruin‑recreate），作为方案 A 的补充/兜底 —— */
+  function baselinePlans(R,C,blocked,infos,prioritySet,priorityExists,strategies,runsPerStrategy,restarts,baseSeed,cap,start,timeBudget,cnt){
+    const total=R*C;
+    const map=new Map();
+    let runs=0,bestFill=0;
+    restart:
+    for(let rt=0; rt<restarts; rt++){
+      const rseed=(baseSeed ^ (rt*0x9E3779B9))>>>0;
+      for(let s=0;s<strategies.length;s++){
+        const strat=strategies[s];
+        for(let n=0;n<runsPerStrategy;n++){
+          const rng=mulberry32((rseed+runs*0x9E3779B1)>>>0);
+          const {filled,used,occ}=greedyFill(R,C,blocked,infos,strat,rng);
+          if(filled>bestFill) bestFill=filled;
+          const sig=sigOfUsed(used,infos,R,C);
+          if(!map.has(sig)) map.set(sig,{occ:Uint8Array.from(occ),used:used.slice(),fill:filled});
+          runs++;
+          if(map.size>=cap) break restart;
+          if(Date.now()-start>timeBudget) break restart;
+        }
+      }
+    }
+    let maxOccs=[...map.values()].filter(c=>c.fill===bestFill);
+    if(maxOccs.length>800){ const rng2=mulberry32((baseSeed^0x1234567)>>>0); const idxs=[...Array(maxOccs.length).keys()]; shuffle(idxs,rng2); maxOccs=idxs.slice(0,800).map(i=>maxOccs[i]); }
+    let candidatePool=maxOccs.slice();
+    if(candidatePool.length<cnt){
+      const rest=[...map.values()].filter(c=>c.fill<bestFill).sort((a,b)=>b.fill-a.fill);
+      for(const c of rest){ candidatePool.push(c); if(candidatePool.length>=cnt) break; }
+    }
+    let refineList=candidatePool;
+    const refineCap=200;
+    if(refineList.length>refineCap){ const rng2=mulberry32((baseSeed^0xABCDEF)>>>0); const idxs=[...Array(refineList.length).keys()]; shuffle(idxs,rng2); refineList=idxs.slice(0,refineCap).map(i=>candidatePool[i]); }
+    const arr=refineList.map((c,ci)=>{
+      if(priorityExists){
+        const K=Math.max(60,Math.min(220,Math.round(36000/refineList.length)+60));
+        const rf=refineFill(R,C,c.occ,blocked,infos,prioritySet,K,((baseSeed^ci*0x27D4EB2F)>>>0),c.used);
+        if(rf) return {used:rf.used,score:rf.score,fill:c.fill};
+      }
+      return {used:c.used,score:0,fill:c.fill};
+    });
+    arr.sort((a,b)=> (priorityExists? (b.score-a.score):0) || (b.fill-a.fill) || (b.used.length-a.used.length));
+    return {plans:arr, runs, poolSize:map.size, bestFill};
+  }
+
+  /* ===================== 生成-筛选分离总入口 ===================== */
+  function generatePlans(backpack,pieces,opts){
+    opts=opts||{};
+    const R=backpack.rows,C=backpack.cols,total=R*C;
+    const blocked=new Uint8Array(total); if(backpack.blocked) for(const i of backpack.blocked) if(i>=0&&i<total) blocked[i]=1;
+    const infos=pieces.map(p=>({ name:p.name, size:normalizeShape(p.cells).length, count:Math.max(1,p.count||1), priority:p.priority?1:0, placements:enumeratePlacements(R,C,normalizeShape(p.cells),blocked) })).filter(p=>p.placements.length>0);
+    const prioritySet=new Set(infos.filter(p=>p.priority).map(p=>p.name));
+    const priorityExists=prioritySet.size>0;
+    const strategies=opts.strategies||['topleft','center','corners','diagonal','random'];
+    const runsPerStrategy=opts.runsPerStrategy||500;
+    const restarts=opts.restarts||1;
+    const baseSeed=opts.seed||20260721;
+    const timeBudget=opts.timeLimitMs||1500;
+    const cap=opts.cap||3000;
+    const cnt=priorityExists?5:(opts.count||10);   // 勾选优先→强制展示前 5；否则→前 10
+    const start=Date.now();
+    let blockedCount=0; for(let i=0;i<total;i++) if(blocked[i]) blockedCount++;
+    const capacity=total-blockedCount;
+
+    /* ---------- 勾选优先：方案 A（包围 + 有界精确补全），稳定逼近相邻法宝数上限 ---------- */
+    if(priorityExists){
+      const prioPis=[]; infos.forEach((p,pi)=>{ if(p.priority) prioPis.push(pi); });
+      // 预计算每个优先法宝“满壳（互不相同的邻接格数最多）放置”，仅用此类放置以保证逼近上限
+      const prioDistinct=infos.map(()=>null); const prioMaxD=new Array(infos.length).fill(0);
+      prioPis.forEach(pi=>{ const pls=infos[pi].placements; const arr=new Array(pls.length); let mx=0;
+        for(let k=0;k<pls.length;k++){ const occ2=new Uint8Array(total); for(const idx of pls[k]) occ2[idx]=1; const s=new Set();
+          for(const idx of pls[k]){ const r=(idx/C)|0,c=idx%C; for(const [nr,nc] of [[r-1,c],[r+1,c],[r,c-1],[r,c+1]]){ if(nr<0||nr>=R||nc<0||nc>=C) continue; const ni=nr*C+nc; if(!occ2[ni]) s.add(ni); } }
+          arr[k]=s.size; if(s.size>mx) mx=s.size; }
+        prioDistinct[pi]=arr; prioMaxD[pi]=mx; });
+      const plans=[]; const sigs=new Set();
+      const maxAttempts=opts.maxAttempts||3000;
+      const deadline=start+timeBudget;
+      let attempt=0;
+      while(plans.length<cnt && (Date.now()-start) < timeBudget*0.55 && attempt<maxAttempts){
+        attempt++;
+        const rng=mulberry32(((baseSeed ^ (attempt*0x2545F491))>>>0));
+        const occ=Uint8Array.from(blocked); const instAt=new Array(total).fill(-1); const used=[]; const counts=infos.map(p=>p.count);
+        let ok=true; let nextId=0;
+        for(const pi of prioPis){
+          const pls=infos[pi].placements;
+          const cand=[];
+          for(let k=0;k<pls.length;k++){
+            const pl=pls[k]; let bad=false; for(const idx of pl){ if(occ[idx]||blocked[idx]){bad=true;break;} } if(bad) continue;
+            if(prioDistinct[pi][k] < prioMaxD[pi]) continue; // 仅满壳内部放置
+            cand.push(k);
+          }
+          if(cand.length===0){ ok=false; break; }
+          const pick=cand[Math.floor(rng()*cand.length)];
+          const pl=pls[pick]; for(const idx of pl){ occ[idx]=1; } const id=nextId++; instAt[pl[0]]=id; for(const idx of pl) instAt[idx]=id; used.push({pi,pIdx:pick}); counts[pi]--;
+        }
+        if(!ok) continue;
+        const shellMask=shellMaskOf(R,C,occ,blocked);
+        let shellCount=0; for(let i=0;i<total;i++) if(shellMask[i]) shellCount++;
+        const res=exactPack(R,C,blocked,infos,occ,instAt,used,counts,nextId,shellMask,{nodeCap:opts.nodeCap||120000, deadline, rng});
+        if(res){
+          const st=buildState(R,C,blocked,res,infos);
+          const score=neighborScore(R,C,st.occ,blocked,res,infos,prioritySet,st.instAt);
+          if(score!==shellCount) continue; // 必须是该配置的极限（满壳 + 无块占 2 壳格 → 每个壳格各一个互异实例）
+          let filled=0; for(let i=0;i<total;i++) if(st.occ[i]&&!blocked[i]) filled++;
+          const sig=sigOfUsed(res,infos,R,C);
+          if(!sigs.has(sig)){ sigs.add(sig); plans.push({used:res,score,fill:filled}); }
+        }
+      }
+      plans.sort((a,b)=> (b.score-a.score) || (b.fill-a.fill) || (b.used.length-a.used.length));
+      // 不足 cnt：用基线 greedy+refine 补充（尽力不降低体验），并给兜底分配独立的时间预算
+      if(plans.length<cnt){
+        const fbStart=Date.now(); const fbBudget=Math.max(80,(start+timeBudget)-fbStart);
+        const base=baselinePlans(R,C,blocked,infos,prioritySet,true,strategies,runsPerStrategy,restarts,baseSeed,cap,fbStart,fbBudget,cnt);
+        for(const p of base.plans){ const sig=sigOfUsed(p.used,infos,R,C); if(!sigs.has(sig)){ sigs.add(sig); plans.push(p); if(plans.length>=cnt) break; } }
+        plans.sort((a,b)=> (b.score-a.score) || (b.fill-a.fill) || (b.used.length-a.used.length));
+      }
+      let bestFill=0; for(const p of plans) if(p.fill>bestFill) bestFill=p.fill;
+      return buildOutput(plans,infos,R,C,blocked,capacity,blockedCount,cnt,attempt,sigs.size,bestFill);
+    }
+
+    /* ---------- 未勾选优先：基线（生成-筛选分离） ---------- */
+    const base=baselinePlans(R,C,blocked,infos,prioritySet,false,strategies,runsPerStrategy,restarts,baseSeed,cap,start,timeBudget,cnt);
+    return buildOutput(base.plans,infos,R,C,blocked,capacity,blockedCount,cnt,base.runs,base.poolSize,base.bestFill);
+  }
+  const api={ generatePlans, normalizeShape, enumeratePlacements, mulberry32, shuffle, greedyFill, neighborScore };
+  if(typeof module!=='undefined'&&module.exports) module.exports=api; global.PackCore=api;
+})(typeof window!=='undefined'?window:globalThis);
+
+/* ===================== UI 逻辑 ===================== */
+(function () {
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const PALETTE = ['#e6194b','#3cb44b','#4363d8','#f58231','#911eb4','#46c0c0','#f0329e','#9a6324','#008080','#bc8000','#5a3ec8','#1f9d55','#c0392b','#2f7ed8','#d97706','#16a085'];
+  let tid = 0;
+  const library = [];               // 灵枢宝鉴：{id,name,cells,color,base:{hp,def,atk},bonusRate,bonusType,bonusAttr,count,group}
+  const sel = {};                  // 选宝状态：{id:{include,count,priority}}
+  const groups = [];               // 组别：{id,name,enabled}
+  let gidCounter = 0;              // 组别自增计数
+  let bagBlocked = new Set();      // 背包障碍格索引
+  let libFilter = 'all';           // 灵枢宝鉴筛选：all / on / off
+  let groupFilter = 'all';         // 组别筛选：all / ungrouped / <groupId>
+  let searchTerm = '';             // 宝鉴名称搜索（含默认库条目，便于定位需修改的项）
+
+  const SHAPES = {
+    '单格':[[0,0]], '骨牌':[[0,0],[0,1]], '三连':[[0,0],[0,1],[0,2]], 'L三连':[[0,0],[1,0],[1,1]],
+    'L四连':[[0,0],[1,0],[2,0],[2,1]], 'J四连':[[0,1],[1,1],[2,1],[2,0]], 'T四连':[[0,0],[0,1],[0,2],[1,1]],
+    '方块②':[[0,0],[0,1],[1,0],[1,1]], '长条④':[[0,0],[0,1],[0,2],[0,3]], '十字⑤':[[0,1],[1,0],[1,1],[1,2],[2,1]],
+    'Z四连':[[0,0],[0,1],[1,1],[1,2]],     '田字⑤':[[0,0],[0,1],[0,2],[1,0],[1,1],[1,2],[2,0],[2,1],[2,2]],
+  };
+
+  /* === 基础法宝库：由「工作簿1.xlsx」导入，7 组 63 件（金/木/水/火/土/雷/体） === */
+    const DEFAULT_GROUPS = [
+    {id:'金',name:'金',enabled:true},
+    {id:'木',name:'木',enabled:true},
+    {id:'水',name:'水',enabled:true},
+    {id:'火',name:'火',enabled:true},
+    {id:'土',name:'土',enabled:true},
+    {id:'雷',name:'雷',enabled:true},
+    {id:'体',name:'体',enabled:true}
+  ];
+  const DEFAULT_LIBRARY = [
+    {id:'B1',name:'蕴金戒',group:'金',cells:[[0,0]],base:{hp:1135,def:0,atk:20},bonusRate:0,bonusType:'none',bonusAttr:'hp',count:1},
+    {id:'B2',name:'分金刀',group:'金',cells:[[0,0],[0,1]],base:{hp:2070,def:0,atk:44},bonusRate:0,bonusType:'none',bonusAttr:'hp',count:1},
+    {id:'B3',name:'重金短矛',group:'金',cells:[[1,0],[1,1],[0,1]],base:{hp:2555,def:11,atk:66},bonusRate:0,bonusType:'none',bonusAttr:'hp',count:1},
+    {id:'B4',name:'重金破阵矛',group:'金',cells:[[0,0],[1,0],[2,0],[3,0]],base:{hp:3040,def:15,atk:95},bonusRate:0,bonusType:'none',bonusAttr:'hp',count:1},
+    {id:'B5',name:'玄金重剑',group:'金',cells:[[0,0],[1,0],[2,0]],base:{hp:3055,def:9,atk:58},bonusRate:0,bonusType:'none',bonusAttr:'hp',count:1},
+    {id:'B6',name:'玄金碎甲剑',group:'金',cells:[[0,1],[1,1],[2,1],[2,0]],base:{hp:3790,def:13,atk:82},bonusRate:0,bonusType:'none',bonusAttr:'hp',count:1},
+    {id:'B7',name:'曜金寸刀',group:'金',cells:[[0,0],[1,0],[0,1]],base:{hp:2555,def:0,atk:77},bonusRate:0,bonusType:'none',bonusAttr:'hp',count:1},
+    {id:'B8',name:'曜金战身刀',group:'金',cells:[[0,0],[1,0],[2,0],[0,1]],base:{hp:3340,def:0,atk:104},bonusRate:40,bonusType:'self',bonusAttr:'atk',count:1},
+    {id:'B9',name:'蕴金枪',group:'金',cells:[[0,0],[1,0]],base:{hp:1670,def:0,atk:52},bonusRate:0,bonusType:'none',bonusAttr:'hp',count:1},
+    {id:'B10',name:'枯荣种',group:'木',cells:[[0,0]],base:{hp:2135,def:0,atk:0},bonusRate:50,bonusType:'buff',bonusAttr:'hp',count:1},
+    {id:'B11',name:'老山参',group:'木',cells:[[0,0],[1,0]],base:{hp:2070,def:0,atk:44},bonusRate:0,bonusType:'none',bonusAttr:'hp',count:1},
+    {id:'B12',name:'木灵短剑',group:'木',cells:[[0,0],[1,0],[0,1]],base:{hp:2455,def:13,atk:66},bonusRate:0,bonusType:'none',bonusAttr:'hp',count:1},
+    {id:'B13',name:'木灵大宝剑',group:'木',cells:[[0,1],[1,1],[2,1],[2,0]],base:{hp:2840,def:19,atk:95},bonusRate:0,bonusType:'none',bonusAttr:'hp',count:1},
+    {id:'B14',name:'噬元喷菇',group:'木',cells:[[0,0],[1,0],[0,1]],base:{hp:3805,def:8,atk:44},bonusRate:0,bonusType:'none',bonusAttr:'hp',count:1},
+    {id:'B15',name:'千瘴断魂琴',group:'木',cells:[[0,0],[1,0],[2,0],[0,1]],base:{hp:3940,def:15,atk:77},bonusRate:40,bonusType:'self',bonusAttr:'atk',count:1},
+    {id:'B16',name:'千瘴短笛',group:'木',cells:[[1,0],[1,1],[0,1]],base:{hp:3005,def:11,atk:57},bonusRate:0,bonusType:'none',bonusAttr:'hp',count:1},
+    {id:'B17',name:'噬元大丽花',group:'木',cells:[[0,0],[1,0],[0,1],[1,1]],base:{hp:4790,def:12,atk:63},bonusRate:50,bonusType:'self',bonusAttr:'hp',count:1},
+    {id:'B18',name:'木灵匕首',group:'木',cells:[[0,0],[0,1]],base:{hp:1670,def:0,atk:52},bonusRate:0,bonusType:'none',bonusAttr:'hp',count:1},
+    {id:'B19',name:'流水散',group:'水',cells:[[0,0]],base:{hp:1135,def:20,atk:0},bonusRate:100,bonusType:'buff',bonusAttr:'def',count:1},
+    {id:'B20',name:'净魂刃',group:'水',cells:[[0,0],[1,0]],base:{hp:1670,def:13,atk:39},bonusRate:0,bonusType:'none',bonusAttr:'hp',count:1},
+    {id:'B21',name:'霜华轻剑',group:'水',cells:[[0,0],[1,0],[2,0]],base:{hp:2805,def:14,atk:58},bonusRate:0,bonusType:'none',bonusAttr:'hp',count:1},
+    {id:'B22',name:'霜华千影剑',group:'水',cells:[[0,1],[1,1],[2,1],[2,0]],base:{hp:3440,def:20,atk:82},bonusRate:40,bonusType:'self',bonusAttr:'atk',count:1},
+    {id:'B23',name:'冰魄护肩',group:'水',cells:[[0,0],[1,0],[0,1]],base:{hp:2955,def:17,atk:52},bonusRate:0,bonusType:'none',bonusAttr:'hp',count:1},
+    {id:'B24',name:'冰魄凝神甲',group:'水',cells:[[0,0],[1,0],[0,1],[1,1]],base:{hp:4140,def:22,atk:66},bonusRate:0,bonusType:'none',bonusAttr:'hp',count:1},
+    {id:'B25',name:'急冻瓜锤',group:'水',cells:[[1,0],[1,1],[0,1]],base:{hp:2805,def:20,atk:52},bonusRate:0,bonusType:'none',bonusAttr:'hp',count:1},
+    {id:'B26',name:'急冻流星锤',group:'水',cells:[[0,0],[1,0],[2,0],[0,1]],base:{hp:3590,def:28,atk:71},bonusRate:100,bonusType:'self',bonusAttr:'def',count:1},
+    {id:'B27',name:'净魂锤',group:'水',cells:[[0,0],[0,1]],base:{hp:1620,def:15,atk:38},bonusRate:0,bonusType:'none',bonusAttr:'hp',count:1},
+    {id:'B28',name:'炎脉髓',group:'火',cells:[[0,0]],base:{hp:1135,def:0,atk:20},bonusRate:0,bonusType:'none',bonusAttr:'hp',count:1},
+    {id:'B29',name:'燎魂唢呐',group:'火',cells:[[0,0],[1,0]],base:{hp:2070,def:0,atk:44},bonusRate:0,bonusType:'none',bonusAttr:'hp',count:1},
+    {id:'B30',name:'至阳火鉴',group:'火',cells:[[0,0],[1,0],[0,1]],base:{hp:2655,def:9,atk:66},bonusRate:0,bonusType:'none',bonusAttr:'hp',count:1},
+    {id:'B31',name:'至阳风火轮',group:'火',cells:[[0,0],[1,0],[0,1],[1,1]],base:{hp:3140,def:13,atk:95},bonusRate:40,bonusType:'self',bonusAttr:'atk',count:1},
+    {id:'B32',name:'炽影长刀',group:'火',cells:[[0,0],[1,0],[2,0]],base:{hp:2005,def:11,atk:77},bonusRate:0,bonusType:'none',bonusAttr:'hp',count:1},
+    {id:'B33',name:'炽影破锋刃',group:'火',cells:[[0,0],[1,0],[2,0],[0,1]],base:{hp:2790,def:14,atk:101},bonusRate:0,bonusType:'none',bonusAttr:'hp',count:1},
+    {id:'B34',name:'拜火金锣',group:'火',cells:[[1,0],[1,1],[0,1]],base:{hp:2105,def:9,atk:77},bonusRate:0,bonusType:'none',bonusAttr:'hp',count:1},
+    {id:'B35',name:'拜火焚星笙',group:'火',cells:[[0,1],[1,1],[2,1],[2,0]],base:{hp:2690,def:13,atk:104},bonusRate:0,bonusType:'none',bonusAttr:'hp',count:1},
+    {id:'B36',name:'燎魂刀',group:'火',cells:[[0,0],[0,1]],base:{hp:1920,def:0,atk:47},bonusRate:0,bonusType:'none',bonusAttr:'hp',count:1},
+    {id:'B37',name:'玄黄令',group:'土',cells:[[0,0]],base:{hp:1835,def:0,atk:6},bonusRate:0,bonusType:'none',bonusAttr:'hp',count:1},
+    {id:'B38',name:'破岩锤',group:'土',cells:[[0,0],[0,1]],base:{hp:3320,def:0,atk:19},bonusRate:0,bonusType:'none',bonusAttr:'hp',count:1},
+    {id:'B39',name:'撼地重锤',group:'土',cells:[[0,0],[1,0],[2,0]],base:{hp:3905,def:25,atk:25},bonusRate:0,bonusType:'none',bonusAttr:'hp',count:1},
+    {id:'B40',name:'撼地震魄锤',group:'土',cells:[[0,0],[1,0],[2,0],[0,1]],base:{hp:4740,def:38,atk:38},bonusRate:0,bonusType:'none',bonusAttr:'hp',count:1},
+    {id:'B41',name:'坤元大钟',group:'土',cells:[[1,0],[1,1],[0,1]],base:{hp:5155,def:5,atk:20},bonusRate:0,bonusType:'none',bonusAttr:'hp',count:1},
+    {id:'B42',name:'坤元生息铠',group:'土',cells:[[0,0],[1,0],[0,1],[1,1]],base:{hp:6490,def:8,atk:33},bonusRate:0,bonusType:'none',bonusAttr:'hp',count:1},
+    {id:'B43',name:'崩山短幡',group:'土',cells:[[0,0],[1,0],[0,1]],base:{hp:5005,def:9,atk:19},bonusRate:0,bonusType:'none',bonusAttr:'hp',count:1},
+    {id:'B44',name:'崩山裂魂幡',group:'土',cells:[[0,1],[1,1],[2,1],[2,0]],base:{hp:6090,def:16,atk:33},bonusRate:0,bonusType:'none',bonusAttr:'hp',count:1},
+    {id:'B45',name:'破岩护臂',group:'土',cells:[[0,0],[1,0]],base:{hp:3320,def:0,atk:19},bonusRate:0,bonusType:'none',bonusAttr:'hp',count:1},
+    {id:'B46',name:'雷灵珠',group:'雷',cells:[[0,0]],base:{hp:1135,def:0,atk:20},bonusRate:0,bonusType:'none',bonusAttr:'hp',count:1},
+    {id:'B47',name:'雷灵幡',group:'雷',cells:[[0,0],[1,0]],base:{hp:1920,def:0,atk:47},bonusRate:0,bonusType:'none',bonusAttr:'hp',count:1},
+    {id:'B48',name:'鸣雷长枪',group:'雷',cells:[[0,0],[1,0],[2,0]],base:{hp:2305,def:11,atk:71},bonusRate:0,bonusType:'none',bonusAttr:'hp',count:1},
+    {id:'B49',name:'鸣雷诛邪枪',group:'雷',cells:[[0,1],[1,1],[2,1],[2,0]],base:{hp:2940,def:16,atk:96},bonusRate:0,bonusType:'none',bonusAttr:'hp',count:1},
+    {id:'B50',name:'玄阴古筝',group:'雷',cells:[[0,0],[0,1],[0,2]],base:{hp:2755,def:10,atk:63},bonusRate:0,bonusType:'none',bonusAttr:'hp',count:1},
+    {id:'B51',name:'玄阴霹雳鼓',group:'雷',cells:[[0,0],[1,0],[0,1],[1,1]],base:{hp:3590,def:14,atk:85},bonusRate:0,bonusType:'none',bonusAttr:'hp',count:1},
+    {id:'B52',name:'雷元短幡',group:'雷',cells:[[1,0],[1,1],[0,1]],base:{hp:3105,def:9,atk:57},bonusRate:0,bonusType:'none',bonusAttr:'hp',count:1},
+    {id:'B53',name:'雷元乌龙旗',group:'雷',cells:[[0,0],[1,0],[2,0],[0,1]],base:{hp:4140,def:12,atk:76},bonusRate:0,bonusType:'none',bonusAttr:'hp',count:1},
+    {id:'B54',name:'鸣雷鼓',group:'雷',cells:[[0,0],[0,1]],base:{hp:2320,def:0,atk:39},bonusRate:0,bonusType:'none',bonusAttr:'hp',count:1},
+    {id:'B55',name:'大力丸',group:'体',cells:[[0,0]],base:{hp:1135,def:20,atk:0},bonusRate:0,bonusType:'none',bonusAttr:'hp',count:1},
+    {id:'B56',name:'灵兽肉',group:'体',cells:[[0,0],[0,1]],base:{hp:1770,def:12,atk:38},bonusRate:0,bonusType:'none',bonusAttr:'hp',count:1},
+    {id:'B57',name:'罡体腰带',group:'体',cells:[[0,0],[0,1],[0,2]],base:{hp:2855,def:14,atk:57},bonusRate:0,bonusType:'none',bonusAttr:'hp',count:1},
+    {id:'B58',name:'罡体不破甲',group:'体',cells:[[0,0],[1,0],[0,1],[1,1]],base:{hp:3790,def:19,atk:76},bonusRate:60,bonusType:'self',bonusAttr:'hp',count:1},
+    {id:'B59',name:'百炼短锤',group:'体',cells:[[1,0],[1,1],[0,1]],base:{hp:3105,def:22,atk:44},bonusRate:0,bonusType:'none',bonusAttr:'hp',count:1},
+    {id:'B60',name:'百炼成金锤',group:'体',cells:[[0,0],[1,0],[2,0],[0,1]],base:{hp:4190,def:29,atk:58},bonusRate:50,bonusType:'self',bonusAttr:'def',count:1},
+    {id:'B61',name:'无相念珠',group:'体',cells:[[0,0],[1,0],[2,0]],base:{hp:2805,def:14,atk:58},bonusRate:0,bonusType:'none',bonusAttr:'hp',count:1},
+    {id:'B62',name:'无相渡敌钵',group:'体',cells:[[0,1],[1,1],[2,1],[2,0]],base:{hp:3440,def:20,atk:82},bonusRate:0,bonusType:'none',bonusAttr:'hp',count:1},
+    {id:'B63',name:'九宫牌',group:'体',cells:[[0,0],[1,0]],base:{hp:2320,def:11,atk:28},bonusRate:0,bonusType:'none',bonusAttr:'hp',count:1}
+  ];
+
+  /* ===================== 法宝技能参数（伤害计算器唯一数据源） =====================
+     统一结构，引擎只认参数、不认名字：新增法宝只需在「详情」面板里填数，无需改代码。
+       on    : 是否参与输出计算（false = 只占顺序位，0 伤害 0 增益，如九宫牌/灵兽肉）
+       every : 每 N 回合释放一次        from : 从第几回合起可释放
+       hold  : 轮换段走到最后一段后保持（true）/ 循环回第一段（false）
+       cycle : 轮换段数组，每段 { dmg, shield, gainPre, gain, note }
+         dmg     伤害系数：×攻击 / ×防御 / ×最大生命 / ×当前护盾
+         shield  产生护盾：×攻击 / ×防御 / ×最大生命
+         gainPre 释放「前」叠加的增益（影响本次伤害，如巨灵擎天先叠法天象地）
+         gain    释放「后」叠加的增益
+     增益键：lianti 炼体 / jinshen 金身 / chuishi 锤势 / fatian 法天象地 */
+  const GAIN_KEYS = ['lianti','jinshen','chuishi','fatian'];
+  const GAIN_CN   = { lianti:'炼体', jinshen:'金身', chuishi:'锤势', fatian:'法天象地' };
+  function emptyEff(){
+    return { dmg:{atk:0,def:0,hpMax:0,shield:0}, shield:{atk:0,def:0,hpMax:0},
+             gainPre:{lianti:0,jinshen:0,chuishi:0,fatian:0}, gain:{lianti:0,jinshen:0,chuishi:0,fatian:0}, note:'' };
+  }
+  function mkEff(o){
+    const e=emptyEff(); o=o||{};
+    if(o.dmg) Object.assign(e.dmg,o.dmg);
+    if(o.shield) Object.assign(e.shield,o.shield);
+    if(o.gainPre) Object.assign(e.gainPre,o.gainPre);
+    if(o.gain) Object.assign(e.gain,o.gain);
+    if(o.note) e.note=String(o.note);
+    return e;
+  }
+  function normalizeSkill(sk){
+    if(!sk || typeof sk!=='object') return null;
+    const cyc = (Array.isArray(sk.cycle)&&sk.cycle.length) ? sk.cycle.map(mkEff) : [emptyEff()];
+    return { on: sk.on!==false, every: Math.max(1,Number(sk.every)||1), from: Math.max(1,Number(sk.from)||1),
+             hold: sk.hold!==false, cycle: cyc, desc: String(sk.desc||'') };
+  }
+  // 技能是否"有内容"（全 0 系数且无增益 = 尚未配置，计算器里标灰）
+  function skillHasContent(sk){
+    if(!sk||!sk.on) return false;
+    return sk.cycle.some(e =>
+      e.dmg.atk||e.dmg.def||e.dmg.hpMax||e.dmg.shield ||
+      e.shield.atk||e.shield.def||e.shield.hpMax ||
+      GAIN_KEYS.some(k=>e.gainPre[k]||e.gain[k]));
+  }
+  /* 预置技能：用户未在详情里保存过的法宝，按名称自动套用这里的默认参数 */
+  const DEFAULT_SKILLS = {
+    '真武神镯':{ on:true, every:2, from:1, hold:true, desc:'每 2 回合释放；三段轮换：聚盾 → 翻海拳 → 破界拳（第 3 次起固定破界拳）', cycle:[
+      mkEff({ shield:{atk:4.0}, gain:{lianti:2}, note:'第1次：获得 400% 攻击力的护盾，炼体+2' }),
+      mkEff({ dmg:{atk:2.0, hpMax:0.10}, note:'第2次【翻海拳】：200% 攻击 + 10% 最大生命' }),
+      mkEff({ dmg:{atk:4.0, hpMax:0.30, shield:1.0}, note:'第3次起【破界拳】：400% 攻击 + 30% 最大生命 + 100% 当前护盾' })
+    ]},
+    '百炼成金锤':{ on:true, every:1, from:1, hold:true, desc:'每回合释放：60% 攻击 + 240% 防御，金身+2', cycle:[
+      mkEff({ dmg:{atk:0.6, def:2.4}, gain:{jinshen:2}, note:'60% 攻击 + 240% 防御，释放后金身+2' })
+    ]},
+    '百炼短锤':{ on:true, every:1, from:1, hold:true, desc:'每回合释放：50% 攻击 + 200% 防御，金身+2', cycle:[
+      mkEff({ dmg:{atk:0.5, def:2.0}, gain:{jinshen:2}, note:'50% 攻击 + 200% 防御，释放后金身+2' })
+    ]},
+    '巨灵擎天':{ on:true, every:1, from:3, hold:true, desc:'第 3 回合起每回合释放：先叠【法天象地】+1，再打 120% 攻击 + 480% 防御，金身+5', cycle:[
+      mkEff({ gainPre:{fatian:1}, dmg:{atk:1.2, def:4.8}, gain:{jinshen:5}, note:'释放前先叠法天象地+1（本次伤害即享受），伤害 120% 攻击 + 480% 防御，释放后金身+5' })
+    ]},
+    '大力丸':{ on:true, every:1, from:1, hold:true, desc:'每回合释放：炼体+2（无直接伤害）', cycle:[
+      mkEff({ gain:{lianti:2}, note:'炼体+2' })
+    ]},
+    '罡体不破甲':{ on:true, every:1, from:1, hold:true, desc:'每回合释放：获得 65% 攻击力的护盾，炼体+1', cycle:[
+      mkEff({ shield:{atk:0.65}, gain:{lianti:1}, note:'护盾 = 65% 攻击力，炼体+1' })
+    ]},
+    '罡体腰带':{ on:true, every:1, from:1, hold:true, desc:'每回合释放：获得 100% 攻击力的护盾，炼体+1', cycle:[
+      mkEff({ shield:{atk:1.0}, gain:{lianti:1}, note:'护盾 = 100% 攻击力，炼体+1' })
+    ]},
+    '无相念珠':{ on:true, every:1, from:1, hold:true, desc:'纯伤害法宝，系数待录入：请在下方填写倍率后生效', cycle:[ mkEff({ note:'请填写伤害系数（×攻击 / ×防御 / ×最大生命）' }) ]},
+    '无相渡敌钵':{ on:true, every:1, from:1, hold:true, desc:'纯伤害法宝，系数待录入：请在下方填写倍率后生效', cycle:[ mkEff({ note:'请填写伤害系数（×攻击 / ×防御 / ×最大生命）' }) ]},
+    '九宫牌':{ on:false, every:1, from:1, hold:true, desc:'增伤/减伤类，不产生直接输出，不参与伤害计算', cycle:[ mkEff() ]},
+    '灵兽肉':{ on:false, every:1, from:1, hold:true, desc:'恢复生命值，但不提升最大生命上限 → 对输出无影响，不参与伤害计算', cycle:[ mkEff() ]}
+  };
+  // 取一件法宝的生效技能：用户自定义优先，其次按名称套预置
+  function effSkill(t){
+    if(!t) return null;
+    if(t.skill) return normalizeSkill(t.skill);
+    const d=DEFAULT_SKILLS[t.name];
+    return d? normalizeSkill(d) : null;
+  }
+
+  /* ---------- 灵枢宝鉴：本地持久化（自动保存，避免重复录入） ---------- */
+  const LIB_KEY = 'treasurePackLibrary_v1';
+  const GRP_KEY = 'treasurePackGroups_v1';
+  function saveLocalOnly(){
+    try{
+      const data = library.map(serializeLibItem);
+      localStorage.setItem(LIB_KEY, JSON.stringify(data));
+      localStorage.setItem(GRP_KEY, JSON.stringify(groups.map(g=>({id:g.id,name:g.name,enabled:!!g.enabled}))));
+    }catch(e){ /* localStorage 不可用（如隐私模式）时静默忽略 */ }
+  }
+  function saveLibrary(){ saveLocalOnly(); schedulePush(); }
+  function loadLibrary(){
+    try{
+      const raw = localStorage.getItem(LIB_KEY); if(!raw) return false;
+      const arr = JSON.parse(raw); if(!Array.isArray(arr)) return false;
+      const grp = JSON.parse(localStorage.getItem(GRP_KEY)||'[]');
+      hydrate(arr, Array.isArray(grp)?grp:[]);
+      return arr.length>0;
+    }catch(e){ return false; }
+  }
+  /* 由数组水合（本地加载与远程同步共用）；启用中的组别会默认勾选其法宝、数量置 0
+     主键改为「名称」：法宝 id=名称、组别 id=名称；旧数据(T1/G1 形式)在加载时自动重映射为名称主键。 */
+  function hydrate(arr, grpArr){
+    library.length=0; Object.keys(sel).forEach(k=>delete sel[k]); tid=0; gidCounter=0; groups.length=0;
+    const grpRemap={};
+    (grpArr||[]).forEach(g=>{ const gid=String(g.name||g.id||('组别'+(gidCounter+1))); grpRemap[String(g.id||gid)]=gid; gidCounter++; groups.push({id:gid, name:gid, enabled:!!g.enabled}); });
+    (arr||[]).forEach(t=>{ tid++;
+      const nm=String(t.name||t.id||('法宝'+tid));
+      const id=nm;
+      const rawGrp=t.group||null;
+      const grpId = rawGrp? (grpRemap[String(rawGrp)]||String(rawGrp)) : null;
+      const g = grpId? groups.find(x=>x.id===grpId):null;
+      const inc = !grpId || (g? !!g.enabled : true); // 强关联：分组法宝仅在对应组别已启用时才启用
+      const base=(typeof t.base==='object'&&t.base)?{ hp:Number(t.base.hp)||0, def:Number(t.base.def)||0, atk:Number(t.base.atk)||0 }:{ hp:Number(t.base)||0, def:0, atk:0 };
+      library.push({ id, name:nm, cells:PackCore.normalizeShape(t.cells||[[0,0]]), color:t.color||colorOf(library.length), base, bonusRate:Number(t.bonusRate)||0, bonusType:t.bonusType||'none', bonusAttr:t.bonusAttr||'hp', count:Math.max(0,t.count||0), group:grpId, key:!!t.key, skill:t.skill?normalizeSkill(t.skill):null });
+      const sc=Math.max(0,t.count||0);
+      sel[id]={include:inc,count:sc,priority:false};
+    });
+  }
+  /* 导入/恢复工作簿中的 7 组基础法宝库（按 组别+名称 去重，不覆盖用户自定义法宝） */
+  function importBaseLibrary(){
+    DEFAULT_GROUPS.forEach(bg=>{
+      let g = groups.find(x=>x.id===bg.id);
+      if(!g){ gidCounter++; g={id:bg.id,name:bg.name,enabled:false}; groups.push(g); }
+      else { g.enabled = false; }
+    });
+    let added=0;
+    DEFAULT_LIBRARY.forEach(t=>{
+      if(library.some(x=>x.group===t.group && x.name===t.name)) return;
+      const id=uniqueName(t.name);
+      library.push({ id, name:t.name, cells:PackCore.normalizeShape(t.cells), color:colorOf(library.length), base:{hp:Number(t.base.hp)||0,def:Number(t.base.def)||0,atk:Number(t.base.atk)||0}, bonusRate:Number(t.bonusRate)||0, bonusType:t.bonusType||'none', bonusAttr:t.bonusAttr||'hp', count:0, group:t.group, key:false, skill:null });
+      sel[id]={include:false,count:0,priority:false};
+      added++;
+    });
+    renderInventory(); renderGroups(); saveLibrary();
+    return added;
+  }
+  /* ===================== 云端同步：GitHub Gist（按名称主键「并集合并」，跨设备离线编辑互不覆盖） =====================
+     作用：把法宝库（名称/形状/属性/组别）作为跨设备的共享数据源。
+     推送：把本地并入 Gist（同名本地胜）；拉取：把 Gist 并入本地（同名 Gist 胜）。
+     因此双方各自离线编辑后，互相推送+拉取即可补全为全集，不会互相覆盖。
+     未配置或离线时自动回退本地 localStorage，行为不变。 */
+  const CLOUD_KEY='treasurePackGist';
+  function cloudCfg(){ try{ return JSON.parse(localStorage.getItem(CLOUD_KEY)||'null'); }catch(e){ return null; } }
+  function cloudReady(){ const c=cloudCfg(); return !!(c&&c.on&&c.token); }        // 有 Token 即可推送（无 Gist ID 时首次推送自动创建）
+  function gistPullReady(){ const c=cloudCfg(); return !!(c&&c.on&&c.token&&c.gistId); }
+  function setCloudStatus(m){ const el=document.getElementById('cloudStatus'); if(el) el.textContent=m; }
+  const GIST_FILE='treasure-pack-data.json';
+  // 删除墓碑（tombstone）：被删除的法宝名称集合，随 Gist 跨设备传播，确保“删除”也能同步
+  const DELETED_KEY='treasurePackGistDeleted';
+  function loadDeleted(){ try{ const a=JSON.parse(localStorage.getItem(DELETED_KEY)||'[]'); return new Set(Array.isArray(a)?a:[]); }catch(e){ return new Set(); } }
+  function saveDeleted(s){ try{ localStorage.setItem(DELETED_KEY, JSON.stringify([...s])); }catch(e){} }
+  let deletedNames = loadDeleted();
+  async function gistApi(path, method, body){
+    const c=cloudCfg(); if(!c||!c.token) throw new Error('未配置 GitHub Token');
+    const res=await fetch('https://api.github.com'+path,{
+      method,
+      headers:{ 'Authorization':'Bearer '+c.token, 'Accept':'application/vnd.github+json', 'Content-Type':'application/json', 'X-GitHub-Api-Version':'2022-11-28' },
+      body: body? JSON.stringify(body):undefined
+    });
+    if(!res.ok){
+      let txt=''; try{ const j=await res.json(); txt=JSON.stringify(j&&j.message?j.message:j); }catch(e){ try{ txt=await res.text(); }catch(e2){} }
+      throw new Error('HTTP '+res.status+' '+(txt||res.statusText));
+    }
+    return res.status===204? null : (await res.json().catch(()=>null));
+  }
+  // 按名称主键做「并集合并」：同名法宝取 one 方（胜方）覆盖，其余并集。
+  // 这是跨设备离线编辑后能互相补全、互不覆盖的关键。
+  function mergeItems(a, b){
+    const map=new Map();
+    (a||[]).forEach(t=>{ if(t&&(t.id||t.name)!=null) map.set(String(t.id||t.name), t); });
+    (b||[]).forEach(t=>{ if(t&&(t.id||t.name)!=null) map.set(String(t.id||t.name), t); }); // b 覆盖 a
+    return [...map.values()];
+  }
+  function mergeGroups(a, b){
+    const map=new Map();
+    (a||[]).forEach(g=>{ if(g&&(g.id||g.name)!=null) map.set(String(g.id||g.name), g); });
+    (b||[]).forEach(g=>{ if(g&&(g.id||g.name)!=null) map.set(String(g.id||g.name), g); });
+    return [...map.values()];
+  }
+  function gistPayload(){
+    return { version:1, library:library.map(serializeLibItem), groups:groups.map(g=>({id:g.id,name:g.name,enabled:!!g.enabled})), deleted:[...deletedNames] };
+  }
+  // 用合并后的「存储态」重建本地 library/groups，并尽量保留本地已有的勾选(sel)状态
+  function rebuildFromMerged(libStored, grpStored){
+    library.length=0; groups.length=0;
+    (grpStored||[]).forEach(g=>{ groups.push({id:String(g.id||g.name), name:String(g.name||g.id), enabled:!!g.enabled}); });
+    const grpMap=new Map(groups.map(g=>[g.id,g]));
+    (libStored||[]).forEach(t=>{
+      const id=String(t.id||t.name);
+      const grpId = t.group?String(t.group):null;
+      const g = grpId?grpMap.get(grpId):null;
+      const grpOff = !!(grpId && g && !g.enabled);
+      library.push({ id, name:String(t.name||t.id), cells:PackCore.normalizeShape(t.cells||[[0,0]]), color:t.color||colorOf(library.length),
+        base:(t.base&&typeof t.base==='object')?{hp:Number(t.base.hp)||0,def:Number(t.base.def)||0,atk:Number(t.base.atk)||0}:{hp:0,def:0,atk:0},
+        bonusRate:Number(t.bonusRate)||0, bonusType:t.bonusType||'none', bonusAttr:t.bonusAttr||'hp',
+        count:Math.max(0,Number(t.count)||0), group:grpId, key:!!t.key, skill:t.skill?normalizeSkill(t.skill):null });
+      if(!sel[id]) sel[id]={ include:!grpOff, count:Math.max(0,Number(t.count)||0), priority:false };
+    });
+    tid=library.length; gidCounter=groups.length;
+  }
+  async function pushToCloud(){
+    if(!cloudReady()){ setCloudStatus('请先填写 GitHub Token 并勾选启用'); return; }
+    const c=cloudCfg();
+    try{
+      const local=gistPayload();
+      let base={ version:1, library:[], groups:[], deleted:[] };
+      if(c.gistId){
+        try{
+          const g=await gistApi('/gists/'+encodeURIComponent(c.gistId),'GET');
+          const f=g.files && g.files[GIST_FILE];
+          if(f&&f.content){ const d=JSON.parse(f.content); if(Array.isArray(d.library)) base={ version:1, library:d.library, groups:d.groups||[], deleted:d.deleted||[] }; }
+        }catch(e){ /* 读不到旧数据则当作空 */ }
+      }
+      // 合并删除墓碑：本地 + 云端 已删除名称的并集
+      const del=new Set([...(base.deleted||[]), ...deletedNames]);
+      // 合并法宝：本地覆盖 Gist 中同名项（不会丢失对方已上传的法宝），再剔除墓碑项
+      const mergedLib=mergeItems(base.library, local.library).filter(t=>!del.has(String(t.id||t.name)));
+      const mergedGrp=mergeGroups(base.groups, local.groups);
+      deletedNames=del; saveDeleted(del);
+      const content=JSON.stringify({ version:1, library:mergedLib, groups:mergedGrp, deleted:[...del] }, null, 2);
+      const body={ files:{ [GIST_FILE]:{ content } } };
+      if(c.gistId){
+        await gistApi('/gists/'+encodeURIComponent(c.gistId),'PATCH',body);
+        setCloudStatus('☁ 已合并同步到 Gist（'+mergedLib.length+' 件法宝 / '+mergedGrp.length+' 组，已删除 '+del.size+'）');
+      }else{
+        const g=await gistApi('/gists','POST',Object.assign({ description:'法宝背包填充助手 - 云端同步数据', public:false }, body));
+        c.gistId=g.id; localStorage.setItem(CLOUD_KEY, JSON.stringify(c));
+        setCloudStatus('☁ 已创建 Gist 并同步（'+mergedLib.length+' 件法宝 / '+mergedGrp.length+' 组）');
+      }
+    }catch(e){ setCloudStatus('推送失败：'+(e&&e.message||e)); }
+  }
+  let _pushTimer=null;
+  function schedulePush(){ if(_pushTimer) clearTimeout(_pushTimer); _pushTimer=setTimeout(()=>{ if(cloudReady()) pushToCloud().catch(e=>setCloudStatus('自动推送失败：'+(e&&e.message||e))); }, 800); }
+  async function pullFromCloud(){
+    if(!gistPullReady()){ setCloudStatus('请先填写 Token 与 Gist ID 并勾选启用'); return; }
+    try{
+      const c=cloudCfg();
+      const g=await gistApi('/gists/'+encodeURIComponent(c.gistId),'GET');
+      const f=g.files && g.files[GIST_FILE];
+      if(!f||!f.content){ setCloudStatus('Gist 中暂无数据（可先点“立即推送”上传本地数据）'); return; }
+      const data=JSON.parse(f.content);
+      // 合并删除墓碑：本地 + 云端 已删除名称的并集
+      const del=new Set([...(data.deleted||[]), ...deletedNames]);
+      deletedNames=del; saveDeleted(del);
+      // 合并：Gist 覆盖本地同名项，其余并集，再剔除墓碑项
+      const mergedLib=mergeItems(library.map(serializeLibItem), data.library||[]).filter(t=>!del.has(String(t.id||t.name)));
+      const mergedGrp=mergeGroups(groups.map(g=>({id:g.id,name:g.name,enabled:!!g.enabled})), data.groups||[]);
+      if(mergedLib.length===0 && mergedGrp.length===0){ setCloudStatus('Gist 为空（或所法宝均已被删除）'); renderInventory(); renderGroups(); renderQuickShapes(); return; }
+      rebuildFromMerged(mergedLib, mergedGrp);
+      saveLocalOnly(); renderInventory(); renderGroups(); renderQuickShapes();
+      setCloudStatus('☁ 已从 Gist 拉取并合并（'+mergedLib.length+' 件法宝 / '+mergedGrp.length+' 组，已删除 '+del.size+'）');
+    }catch(e){ setCloudStatus('拉取失败：'+(e&&e.message||e)); }
+  }
+  async function forceOverwriteGist(){
+    if(!cloudReady()){ setCloudStatus('请先填写 GitHub Token 并勾选启用'); return; }
+    const c=cloudCfg();
+    try{
+      const local=gistPayload();
+      const content=JSON.stringify({ version:1, library:local.library, groups:local.groups, deleted:[] }, null, 2);
+      const body={ files:{ [GIST_FILE]:{ content } } };
+      if(c.gistId){
+        await gistApi('/gists/'+encodeURIComponent(c.gistId),'PATCH',body);
+      }else{
+        const g=await gistApi('/gists','POST',Object.assign({ description:'法宝背包填充助手 - 云端同步数据', public:false }, body));
+        c.gistId=g.id; localStorage.setItem(CLOUD_KEY, JSON.stringify(c));
+      }
+      deletedNames=new Set(); saveDeleted(deletedNames);
+      setCloudStatus('☁ 已强制覆盖 Gist（'+local.library.length+' 件法宝 / '+local.groups.length+' 组，删除标记已清空）');
+    }catch(e){ setCloudStatus('覆盖失败：'+(e&&e.message||e)); }
+  }
+  function setupCloudUI(){
+    const cfg=cloudCfg()||{};
+    if($('cloudUrl')) $('cloudUrl').value=cfg.token||'';      // 复用控件：此处为 GitHub Token
+    if($('cloudKey')) $('cloudKey').value=cfg.gistId||'';      // 复用控件：此处为 Gist ID（可空）
+    if($('cloudOn')) $('cloudOn').checked=!!cfg.on;
+    const saveCfg=()=>{ const o={ token:($('cloudUrl').value||'').trim(), gistId:($('cloudKey').value||'').trim(), on:$('cloudOn').checked }; localStorage.setItem(CLOUD_KEY, JSON.stringify(o)); return o; };
+    $('cloudOn').onchange=()=>{ const o=saveCfg(); if(o.on&&o.token){ setCloudStatus('正在同步…'); if(o.gistId){ pullFromCloud().catch(()=>{}); } else { pushToCloud().catch(()=>{}); } } else setCloudStatus('已关闭云端同步'); };
+    $('cloudUrl').onchange=saveCfg; $('cloudKey').onchange=saveCfg;
+    $('cloudPull').onclick=()=>{ const o=saveCfg(); if(!o.token||!o.gistId){ setCloudStatus('请先填写 Token 与 Gist ID'); return; } pullFromCloud(); };
+    $('cloudPush').onclick=()=>{ saveCfg(); pushToCloud(); };
+    $('cloudForce').onclick=()=>{ const o=saveCfg(); if(!o.token){ setCloudStatus('请先填写 GitHub Token 并勾选启用'); return; } if(!confirm('确定要强制覆盖 Gist 吗？\n将清空 Gist 中所有旧的法宝/组别，仅保留你当前本地的数据（删除标记也会清空）。此操作不可撤销。')) return; forceOverwriteGist(); };
+    if(!cfg.token) setCloudStatus('未配置：需 GitHub Token（勾选 gist 权限）');
+  }
+
+  /* ===================== 导入接口：Excel/CSV（按法宝名称主键合并/批量修改） ===================== */
+  function parseCSV(text){
+    const rows=[]; let row=[], cur='', q=false, depth=0;
+    for(let i=0;i<text.length;i++){ const c=text[i];
+      if(q){ if(c==='"'){ if(text[i+1]==='"'){ cur+='"'; i++; } else q=false; } else cur+=c; continue; }
+      if(c==='"'){ q=true; continue; }
+      if(c==='['){ depth++; cur+='['; continue; }
+      if(c===']'){ depth--; cur+=']'; continue; }
+      if(depth>0){ cur+=c; continue; }
+      if(c===','){ row.push(cur); cur=''; continue; }
+      if(c==='\n'){ row.push(cur); rows.push(row); row=[]; cur=''; continue; }
+      if(c==='\r'){ continue; }
+      cur+=c;
+    }
+    if(cur.length||row.length){ row.push(cur); rows.push(row); }
+    return rows;
+  }
+  function parseCells(s){
+    if(!s) return [[0,0]];
+    const pts=String(s).match(/(\d+)\s*,\s*(\d+)/g);
+    if(!pts||!pts.length) return [[0,0]];
+    const cells=pts.map(p=>{ const [a,b]=p.split(',').map(Number); return [a,b]; });
+    let mr=Infinity,mc=Infinity; cells.forEach(([r,c])=>{ if(r<mr)mr=r; if(c<mc)mc=c; });
+    return cells.map(([r,c])=>[r-mr,c-mc]);
+  }
+  function numOr0(v){ const n=Number(v); return isFinite(n)?n:0; }
+  const BT_MAP={'':'none','自身受加成':'self','给他人加成':'buff','self':'self','buff':'buff','none':'none'};
+  const BA_MAP={'':'hp','生命力':'hp','生命':'hp','防御力':'def','防御':'def','攻击力':'atk','攻击':'atk','hp':'hp','def':'def','atk':'atk'};
+  function applyImportRows(rows){
+    if(!rows||rows.length===0) return {added:0,updated:0,skipped:0};
+    const headers=rows[0].map(c=>String(c).trim());
+    const isHeader=headers.some(h=>/名称|名字|法宝/.test(h) || /形状|图形/.test(h));
+    let map;
+    if(isHeader){
+      map={};
+      headers.forEach((h,ci)=>{
+        if(/名称|名字|法宝名/.test(h)) map.name=ci;
+        else if(/形状|图形|shape/i.test(h)) map.cells=ci;
+        else if(/^组别$|组$/.test(h)) map.group=ci;
+        else if(/生命/.test(h)) map.hp=ci;
+        else if(/防御/.test(h)) map.def=ci;
+        else if(/攻击/.test(h)) map.atk=ci;
+        else if(/加成率|加成%/.test(h)) map.bonusRate=ci;
+        else if(/加成类型|类型/.test(h)) map.bonusType=ci;
+        else if(/加成属性|属性/.test(h)) map.bonusAttr=ci;
+        else if(/重点|重要|关键|key/i.test(h)) map.key=ci;
+      });
+      rows=rows.slice(1);
+    } else {
+      map={name:0,cells:1,group:2,hp:3,def:4,atk:5,bonusRate:6,bonusType:7,bonusAttr:8};
+    }
+    let added=0,updated=0,skipped=0;
+    rows.forEach(r=>{
+      const name=String(r[map.name]!=null?r[map.name]:'').trim();
+      if(!name){ skipped++; return; }
+      const group=(map.group!=null?String(r[map.group]!=null?r[map.group]:'').trim():'')||null;
+      if(group && !groups.find(g=>g.id===group)){ gidCounter++; groups.push({id:group,name:group,enabled:false}); }
+      // 强关联：分组法宝仅在对应组别已启用时才能被启用（新增/更新均遵循此规则）
+      const gObj=group?groups.find(x=>x.id===group):null;
+      const grpEnabled = !group || (gObj? !!gObj.enabled : true);
+      const cells=parseCells(map.cells!=null?r[map.cells]:'');
+      const hp=numOr0(map.hp!=null?r[map.hp]:0), def=numOr0(map.def!=null?r[map.def]:0), atk=numOr0(map.atk!=null?r[map.atk]:0);
+      const bonusRate=numOr0(map.bonusRate!=null?r[map.bonusRate]:0);
+      const bonusType=BT_MAP[String(map.bonusType!=null?r[map.bonusType]:'').trim()]||'none';
+      const bonusAttr=BA_MAP[String(map.bonusAttr!=null?r[map.bonusAttr]:'').trim()]||'hp';
+      const keyVal = map.key!=null ? /(是|true|1|√|yes|重点)/i.test(String(r[map.key]||'')) : false;
+      const existing=library.find(t=>t.name===name);
+      if(existing){
+        existing.cells=PackCore.normalizeShape(cells);
+        existing.group=group;
+        existing.base={hp,def,atk};
+        existing.bonusRate=bonusRate; existing.bonusType=bonusType; existing.bonusAttr=bonusAttr;
+        existing.key=keyVal; existing.count=Math.max(0,existing.count||0);
+        if(sel[existing.id]){ if(!grpEnabled) sel[existing.id].include=false; sel[existing.id].count=Math.max(0,sel[existing.id].count||0); }
+        updated++;
+      } else {
+        const id=uniqueName(name);
+        library.push({id,name,cells:PackCore.normalizeShape(cells),color:colorOf(library.length),base:{hp,def,atk},bonusRate,bonusType,bonusAttr,count:0,group,key:keyVal,skill:null});
+        sel[id]={include:grpEnabled,count:0,priority:false};
+        added++;
+      }
+    });
+    return {added,updated,skipped};
+  }
+  // 按真实字节嗅探文件类型：扩展名不可靠——Excel 把工作簿另存为 .csv 时实际仍是
+  // ZIP(xlsx) 二进制（会被当成文本读出乱码），而真正的 .csv 在中文 Windows 上多为 GBK 文本。
+  function isZipBytes(buf){ return buf && buf.byteLength>=4 && new Uint8Array(buf,0,4).join(',')==='80,75,3,4'; } // 'PK\x03\x04'
+  function decodeCsvText(buf){
+    const u8=new Uint8Array(buf);
+    if(u8[0]===0xEF && u8[1]===0xBB && u8[2]===0xBF) return new TextDecoder('utf-8').decode(u8); // 带 UTF-8 BOM
+    try{ return new TextDecoder('utf-8',{fatal:true}).decode(u8); } // 先试 UTF-8（严格）
+    catch(e){ try{ return new TextDecoder('gbk').decode(u8); }catch(e2){ return new TextDecoder('utf-8').decode(u8); } } // 失败回退 GBK（中文 Excel 默认 ANSI/GBK）
+  }
+  function importTreasureFile(file){
+    const fname=file.name.toLowerCase();
+    const reader=new FileReader();
+    reader.onload=()=>{
+      try{
+        let rows;
+        const asCsv=(fname.endsWith('.csv')||fname.endsWith('.txt')) && !isZipBytes(reader.result);
+        if(asCsv){
+          rows=parseCSV(decodeCsvText(reader.result));
+        } else {
+          if(typeof XLSX==='undefined'){ alert('解析 .xlsx 需要联网加载表格解析库（SheetJS）。\n请联网后重试，或将文件另存为 .csv 后导入（CSV 无需联网）。'); return; }
+          const wb=XLSX.read(new Uint8Array(reader.result),{type:'array'});
+          const ws=wb.Sheets[wb.SheetNames[0]];
+          rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+        }
+        const r=applyImportRows(rows);
+        renderInventory(); renderGroups(); saveLibrary();
+        $('statusBox').textContent='📥 导入完成：新增 '+r.added+' 件，更新 '+r.updated+' 件，跳过 '+r.skipped+' 行空白（按法宝名称主键合并，已自动去重）。';
+      }catch(err){ alert('导入失败：'+(err&&err.message||err)); }
+    };
+    reader.readAsArrayBuffer(file); // 始终按二进制读取，再按真实类型分支（修复 .csv 实为 xlsx 的乱码）
+  }
+
+  /* ===================== 历史求解模块（最多 10 条，可还原法宝组合） ===================== */
+  const HIST_KEY='treasurePackHistory';
+  function loadHistory(){ try{ const a=JSON.parse(localStorage.getItem(HIST_KEY)||'[]'); return Array.isArray(a)?a:[]; }catch(e){ return []; } }
+  function saveHistoryList(arr){ try{ localStorage.setItem(HIST_KEY, JSON.stringify(arr.slice(0,10))); }catch(e){} }
+  function captureHistory(){
+    if(!lastPlans||!lastPlans.length){ alert('请先点「一键生成填充方案」生成结果后再保存历史。'); return; }
+    const R=bagRows(),C=bagCols();
+    const selSnap={}; library.forEach(t=>{ const s=sel[t.id]; if(s) selSnap[t.id]={include:!!s.include,count:Math.max(0,s.count||0),priority:!!s.priority}; });
+    const top0=lastPlans[0];
+    const label=(R+'×'+C)+' 启用'+Object.values(selSnap).filter(s=>s.include).length+'件 填充'+top0.filled+'/'+top0.capacity;
+    const entry={ ts:Date.now(), label, backpack:{rows:R,cols:C,blocked:[...bagBlocked]}, sel:selSnap, plans:lastPlans, ms:lastMs };
+    const arr=loadHistory(); arr.unshift(entry); saveHistoryList(arr);
+    renderHistory();
+    $('statusBox').textContent='💾 已保存当前求解到历史（共 '+Math.min(arr.length,10)+' 条）。';
+  }
+  function renderHistory(){
+    const box=$('historyList'); if(!box) return; const arr=loadHistory();
+    if(arr.length===0){ box.innerHTML='<div class="empty-note">暂无历史求解。生成方案后点「保存当前求解到历史」即可记录。</div>'; return; }
+    box.innerHTML='';
+    arr.forEach((h,idx)=>{
+      const time=new Date(h.ts); const tstr=time.toLocaleString('zh-CN',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+      const d=document.createElement('div'); d.className='hist-row';
+      d.innerHTML='<div class="hist-info"><b>#'+(idx+1)+'</b> '+escapeHtml(h.label)+' <span class="hist-time">'+tstr+'</span></div>';
+      const btn=document.createElement('button'); btn.className='ghost'; btn.textContent='还原';
+      btn.onclick=()=>restoreHistory(idx);
+      d.appendChild(btn); box.appendChild(d);
+    });
+  }
+  function restoreHistory(idx){
+    const arr=loadHistory(); const h=arr[idx]; if(!h) return;
+    $('rows').value=h.backpack.rows; $('cols').value=h.backpack.cols; bagBlocked=new Set((h.backpack.blocked||[]).filter(i=>i>=0)); $('preset').value='custom';
+    Object.keys(sel).forEach(k=>{ if(sel[k]) sel[k].include=false; });
+    library.forEach(t=>{ const s=h.sel[t.id]; if(s){ sel[t.id]={include:!!s.include,count:Math.max(0,s.count||0),priority:!!s.priority}; } });
+    renderInventory(); renderBagGrid();
+    if(h.plans&&h.plans.length){ renderPlans(h.plans,h.backpack,h.ms||0); $('statusBox').textContent='⏪ 已还原历史求解 #'+(idx+1)+' 的法宝组合与结果。'; }
+    else $('statusBox').textContent='⏪ 已还原历史求解 #'+(idx+1)+' 的法宝组合。';
+  }
+  function serializeLibItem(t){ return { id:t.id, name:t.name, cells:t.cells, color:t.color, base:{hp:Number(t.base&&t.base.hp)||0,def:Number(t.base&&t.base.def)||0,atk:Number(t.base&&t.base.atk)||0}, bonusRate:Number(t.bonusRate)||0, bonusType:t.bonusType||'none', bonusAttr:t.bonusAttr||'hp', count:Math.max(0,t.count||0), group:t.group||null, key:!!t.key, skill:t.skill||null }; }
+  /* ---------- 工具函数 ---------- */
+  function colorOf(i){ return PALETTE[i % PALETTE.length]; }
+  function escapeHtml(s){ return (s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+  function shapeMini(cells,color){ let h=0,w=0; cells.forEach(([r,c])=>{ h=Math.max(h,r+1); w=Math.max(w,c+1); }); const set=new Set(cells.map(([r,c])=>r+','+c)); let html='<div class="mini" style="grid-template-columns:repeat('+w+',14px);gap:2px">'; for(let r=0;r<h;r++) for(let c=0;c<w;c++){ const on=set.has(r+','+c); html+='<div class="mc'+(on?' sel':'')+'"'+(on&&color?' style="background:'+color+';border-color:rgba(0,0,0,.18)"':'')+'></div>'; } return html+'</div>'; }
+  function shapeText(cells){ return cells.map(c=>c[0]+','+c[1]).join(' '); }
+  function parseShapeInput(raw){
+    if(!raw || !raw.trim()) return null;
+    const pairs = raw.match(/(\d+)\s*,\s*(\d+)/g);
+    if(!pairs || pairs.length===0) return null;
+    const nums = raw.match(/\d+/g) || [];
+    if(nums.length !== pairs.length*2) return null; // 末尾存在未完成的半对坐标，暂不接受
+    const cells = pairs.map(p=>{ const a=p.split(','); return [Number(a[0]), Number(a[1])]; });
+    if(cells.length===0) return null;
+    return PackCore.normalizeShape(cells);
+  }
+
+  /* ---------- 灵枢宝鉴：快捷形状 / 手绘 / 添加 ---------- */
+  function renderQuickShapes(){ const box=$('quickShapes'); box.innerHTML=''; Object.keys(SHAPES).forEach(name=>{ const b=document.createElement('button'); b.textContent=name; b.onclick=()=>addToLibrary(name, SHAPES[name].map(c=>c.slice()), 1); box.appendChild(b); }); }
+  const DRAW=5; let drawSel=new Set();
+  function renderDraw(){ const g=$('drawGrid'); g.style.gridTemplateColumns=`repeat(${DRAW},18px)`; g.innerHTML=''; for(let r=0;r<DRAW;r++) for(let c=0;c<DRAW;c++){ const k=r+','+c; const d=document.createElement('div'); d.className='cell tiny click'+(drawSel.has(k)?' sel':''); d.onclick=()=>{ if(drawSel.has(k)) drawSel.delete(k); else drawSel.add(k); d.classList.toggle('sel'); }; g.appendChild(d); } }
+  $('addDraw').onclick=()=>{ if(drawSel.size===0){ alert('请先在手绘网格中点击组成法宝形状'); return; } const cells=[]; drawSel.forEach(k=>{ const [r,c]=k.split(',').map(Number); cells.push([r,c]); }); const name=$('drawName').value.trim()||('法宝'+(tid+1)); const count=Math.max(0,parseInt($('drawCount').value)||0); const opts={ group:($('drawGroup').value||'')||null, hp:Number($('drawHp').value)||0, def:Number($('drawDef').value)||0, atk:Number($('drawAtk').value)||0, bonusRate:Number($('drawBRate').value)||0, bonusType:$('drawBType').value||'none', bonusAttr:$('drawBAttr').value||'hp' }; addToLibrary(name,cells,count,opts); drawSel.clear(); renderDraw(); $('drawName').value=''; $('drawCount').value=1; $('drawHp').value=0; $('drawDef').value=0; $('drawAtk').value=0; $('drawBRate').value=0; $('drawBType').value='none'; $('drawBAttr').value='hp'; };
+  function uniqueName(name){ let base=(name||'法宝').trim()||'法宝'; let nm=base, k=2; while(library.some(t=>t.name===nm)){ nm=base+' #'+k; k++; } return nm; }
+  function addToLibrary(name,cells,count,opts){
+    opts=opts||{};
+    const grp = opts.group||null;
+    // 强关联校验：带组别的法宝，仅当该组别已启用时才默认启用；未分组法宝默认可用。
+    const g = grp? groups.find(x=>x.id===grp):null;
+    const grpEnabled = !grp || (g? !!g.enabled : true);
+    const nm=uniqueName(name); const id=nm;
+    library.push({id,name:nm,cells:PackCore.normalizeShape(cells),color:colorOf(library.length),
+      base:{hp:opts.hp||0,def:opts.def||0,atk:opts.atk||0},
+      bonusRate:opts.bonusRate||0,bonusType:opts.bonusType||'none',bonusAttr:opts.bonusAttr||'hp',
+      count:Math.max(0,count||0),group:grp,key:!!opts.key,skill:opts.skill?normalizeSkill(opts.skill):null});
+    sel[id]={include:grpEnabled,count:Math.max(0,count||0),priority:false};
+    renderInventory(); saveLibrary();
+  }
+
+  /* ---------- 灵枢宝鉴：表格渲染（等价于对方「已有物品清单」） ---------- */
+  function renderInventory(){
+    $('libCount').textContent = library.length;
+    const body=$('invBody'); body.innerHTML='';
+    if(library.length===0){ body.innerHTML='<tr><td colspan="14" class="empty-note">宝鉴还没有法宝，请展开下方「添加法宝」录入，录入后自动保存到本机。</td></tr>'; updateSummary(); return; }
+    // 按当前筛选（搜索 + 启用状态 + 组别）生成「实际索引」视图
+    const view = library.map((t,i)=>i).filter(i=>{
+      const t=library[i];
+      const g=t.group?groups.find(x=>x.id===t.group):null;
+      const grpOff = !!(g && !g.enabled);
+      // 组别未启用时隐藏该组别法宝（除非显式选了「该组别」或「未启用」筛选，便于直接编辑）
+      if(grpOff && groupFilter!==t.group && libFilter!=='off') return false;
+      if(searchTerm && !t.name.toLowerCase().includes(searchTerm)) return false;
+      if(libFilter!=='all'){ const s=sel[t.id]; const inc=s?!!s.include:true; if(libFilter==='on'? !inc : inc) return false; }
+      if(groupFilter==='all') return true;
+      if(groupFilter==='ungrouped') return !t.group;
+      return t.group===groupFilter;
+    });
+    // 排序（界面展示设置）：重点法宝永远排最前；其余按 数量↓·格子↓ / 名称 / 组别 / 录入顺序
+    const sortEl=$('invSort'); const sortMode=sortEl?sortEl.value:'cnt';
+    view.sort((a,b)=>{
+      const ta=library[a], tb=library[b];
+      const ka=ta.key?1:0, kb=tb.key?1:0;
+      if(ka!==kb) return kb-ka;                 // 重点法宝第一优先级
+      if(sortMode==='none') return a-b;          // 其余保持录入顺序
+      if(sortMode==='name') return ta.name.localeCompare(tb.name,'zh');
+      if(sortMode==='group'){ const ga=ta.group||'￿', gb=tb.group||'￿'; if(ga!==gb) return ga<gb?-1:1; }
+      const ca=ta.count||0, cb=tb.count||0;
+      if(cb!==ca) return cb-ca;
+      return (tb.cells.length)-(ta.cells.length);
+    });
+    if(view.length===0){ body.innerHTML='<tr><td colspan="14" class="empty-note">当前筛选下没有法宝（可切换上方「全部法宝 / 已启用 / 未启用 / 组别」）。</td></tr>'; updateSummary(); return; }
+    const optsB='<option value="none">无加成</option><option value="self">自身受加成</option><option value="buff">给他人加成</option>';
+    const optsA='<option value="hp">生命值</option><option value="def">防御力</option><option value="atk">攻击力</option>';
+    view.forEach(actualIndex=>{
+      const i=actualIndex; const t=library[i];
+      const _g=t.group?groups.find(x=>x.id===t.group):null; const _grpOff=!!(_g && !_g.enabled);
+      const s=sel[t.id]||(sel[t.id]={include:!_grpOff,count:t.count||0,priority:false});
+      const bt=t.bonusType||'none'; const ba=t.bonusAttr||'hp';
+      const bDisabled=(bt==='none')?'disabled':'';
+      const g=t.group?groups.find(x=>x.id===t.group):null;
+      const grpOff = !!(g && !g.enabled);
+      const tr=document.createElement('tr');
+      if(t.key) tr.className='key-row';
+      tr.innerHTML =
+        '<td style="text-align:center">'+(grpOff?'<span style="color:var(--c-text-dim);cursor:help" title="组别「'+escapeHtml(g.name)+'」未启用，无法勾选；请先在「组别管理」启用该组别。">🔒</span>':'<input type="checkbox" class="ck" '+(s.include?'checked':'')+' data-i="'+i+'">')+'</td>'+
+        '<td><input type="text" class="nm" value="'+escapeHtml(t.name)+'" data-i="'+i+'"></td>'+
+        '<td style="text-align:center"><button class="keystar '+(t.key?'on':'')+'" data-i="'+i+'" title="标记/取消「重点法宝」：重点法宝永远排最前，名称与数值标红加粗">'+(t.key?'★':'☆')+'</button></td>'+
+        '<td class="shape-td"><div class="mini-wrap" id="mini-'+i+'">'+shapeMini(t.cells,t.color)+'</div><input type="text" class="shapein" value="'+escapeHtml(shapeText(t.cells))+'" data-i="'+i+'" placeholder="0,0 1,0" title="输入坐标对，以空格分隔，如 0,0 1,0 1,1（左上角为 0,0）"></td>'+
+        '<td><select class="grp" data-i="'+i+'">'+groupOptions(t.group)+'</select></td>'+
+        '<td><input type="number" min="0" class="anum hpnum" value="'+((t.base&&t.base.hp)||0)+'" data-i="'+i+'"></td>'+
+        '<td><input type="number" min="0" class="anum defnum" value="'+((t.base&&t.base.def)||0)+'" data-i="'+i+'"></td>'+
+        '<td><input type="number" min="0" class="anum atknum" value="'+((t.base&&t.base.atk)||0)+'" data-i="'+i+'"></td>'+
+        '<td><input type="number" min="0" class="brate" value="'+(t.bonusRate||0)+'" data-i="'+i+'"></td>'+
+        '<td><select class="btype" data-i="'+i+'">'+optsB.replace('value="'+bt+'"','value="'+bt+'" selected')+'</select></td>'+
+        '<td><select class="battr" data-i="'+i+'" '+bDisabled+'>'+optsA.replace('value="'+ba+'"','value="'+ba+'" selected')+'</select></td>'+
+        '<td><input type="number" min="0" max="99" class="cnum" value="'+(t.count||0)+'" data-i="'+i+'"></td>'+
+        '<td style="text-align:center"><input type="checkbox" class="pk" '+(s.priority?'checked':'')+' data-i="'+i+'"></td>'+
+        '<td style="white-space:nowrap"><button class="dt" data-i="'+i+'" title="查看全部信息并录入技能参数">详情</button> <button class="del" data-i="'+i+'">删除</button></td>';
+      body.appendChild(tr);
+    });
+    body.querySelectorAll('.ck').forEach(el=>el.onchange=e=>{ const i=+e.target.dataset.i; const t=library[i]; if(t.group){ const g=groups.find(x=>x.id===t.group); if(g && !g.enabled){ e.target.checked=false; sel[t.id].include=false; alert('无法启用「'+t.name+'」：其组别「'+g.name+'」尚未启用。请先在「组别管理」中勾选启用该组别。'); updateSummary(); return; } } sel[t.id].include=e.target.checked; updateSummary(); });
+    body.querySelectorAll('.nm').forEach(el=>{ const i=+el.dataset.i; el.dataset.orig=library[i].name;
+      el.oninput=e=>{ library[i].name=e.target.value; updateSummary(); saveLibrary(); };
+      el.onchange=e=>{ const v=(e.target.value||'').trim(); if(v && library.some((t,idx)=>idx!==i && t.name===v)){ alert('法宝名称「'+v+'」已存在，名称必须唯一，已还原。'); library[i].name=el.dataset.orig; e.target.value=el.dataset.orig; } else { library[i].name=v||el.dataset.orig; el.dataset.orig=library[i].name; } updateSummary(); saveLibrary(); };
+    });
+    body.querySelectorAll('.hpnum').forEach(el=>el.oninput=e=>{ const t=library[+e.target.dataset.i]; if(!t.base)t.base={}; t.base.hp=Number(e.target.value)||0; saveLibrary(); });
+    body.querySelectorAll('.defnum').forEach(el=>el.oninput=e=>{ const t=library[+e.target.dataset.i]; if(!t.base)t.base={}; t.base.def=Number(e.target.value)||0; saveLibrary(); });
+    body.querySelectorAll('.atknum').forEach(el=>el.oninput=e=>{ const t=library[+e.target.dataset.i]; if(!t.base)t.base={}; t.base.atk=Number(e.target.value)||0; saveLibrary(); });
+    body.querySelectorAll('.brate').forEach(el=>el.oninput=e=>{ library[+e.target.dataset.i].bonusRate=Number(e.target.value)||0; saveLibrary(); });
+    body.querySelectorAll('.btype').forEach(el=>el.onchange=e=>{ const i=+e.target.dataset.i; library[i].bonusType=e.target.value; const ba=el.closest('tr').querySelector('.battr'); if(ba) ba.disabled=(e.target.value==='none'); saveLibrary(); });
+    body.querySelectorAll('.battr').forEach(el=>el.onchange=e=>{ library[+e.target.dataset.i].bonusAttr=e.target.value; saveLibrary(); });
+    body.querySelectorAll('.cnum').forEach(el=>el.oninput=e=>{ const i=+e.target.dataset.i; const v=Math.max(0,parseInt(e.target.value)||0); library[i].count=v; sel[library[i].id].count=v; updateSummary(); saveLibrary(); });
+    body.querySelectorAll('.pk').forEach(el=>el.onchange=e=>{ const i=+e.target.dataset.i; sel[library[i].id].priority=e.target.checked; });
+    body.querySelectorAll('.keystar').forEach(el=>el.onclick=()=>{ const i=+el.dataset.i; const t=library[i]; t.key=!t.key; saveLibrary(); renderInventory(); });
+    body.querySelectorAll('.grp').forEach(el=>el.onchange=e=>{ const i=+e.target.dataset.i; const newG=e.target.value||null; library[i].group=newG; const g=newG?groups.find(x=>x.id===newG):null; if(g && !g.enabled) sel[library[i].id].include=false; renderInventory(); saveLibrary(); });
+    body.querySelectorAll('.shapein').forEach(el=>{ const i=+el.dataset.i;
+      el.oninput=e=>{ const c=parseShapeInput(e.target.value); if(c){ library[i].cells=c; const mw=document.getElementById('mini-'+i); if(mw) mw.innerHTML=shapeMini(c, library[i].color); } };
+      el.onchange=e=>{ const c=parseShapeInput(e.target.value); if(c){ library[i].cells=c; } else { el.value=shapeText(library[i].cells); } updateSummary(); saveLibrary(); };
+    });
+    body.querySelectorAll('.dt').forEach(el=>el.onclick=()=>openDetail(+el.dataset.i));
+    body.querySelectorAll('.del').forEach(el=>el.onclick=e=>{ const i=+e.target.dataset.i; const nm=library[i]?library[i].name:null; delete sel[library[i].id]; library.splice(i,1); if(nm){ deletedNames.add(nm); saveDeleted(deletedNames); } renderInventory(); saveLibrary(); });
+    updateSummary();
+  }
+  function updateSummary(){
+    let included=0, cells=0;
+    library.forEach(t=>{ const s=sel[t.id]; if(s&&s.include){ included++; cells += (s.count||0)*t.cells.length; } });
+    const R=bagRows(),C=bagCols(); const cap=R*C-bagBlocked.size;
+    let extra = cap>=cells ? (' · 还差 <b>'+(cap-cells)+'</b> 格') : (' · <span style="color:var(--warn)">超出 <b>'+(cells-cap)+'</b> 格</span>');
+    $('invSummary').innerHTML = '已选 <b>'+included+'</b> 件法宝 · 总格数 <b>'+cells+'</b> / 容量 <b>'+cap+'</b>'+extra;
+  }
+
+  /* ---------- 背包空间 ---------- */
+  function bagRows(){ return Math.max(1,parseInt($('rows').value)||1); }
+  function bagCols(){ return Math.max(1,parseInt($('cols').value)||1); }
+  function renderBagGrid(){ const R=bagRows(),C=bagCols(); bagBlocked.forEach(i=>{ if(i>=R*C) bagBlocked.delete(i); }); const g=$('spaceGrid'); g.style.gridTemplateColumns=`repeat(${C},26px)`; g.innerHTML=''; for(let r=0;r<R;r++) for(let c=0;c<C;c++){ const idx=r*C+c; const d=document.createElement('div'); d.className='cell click'+(bagBlocked.has(idx)?' blocked':''); d.onclick=()=>{ if(bagBlocked.has(idx)) bagBlocked.delete(idx); else bagBlocked.add(idx); d.classList.toggle('blocked'); updateCap(); updateSummary(); }; g.appendChild(d); } updateCap(); }
+  function updateCap(){ const R=bagRows(),C=bagCols(); $('capInfo').textContent=`容量 = ${R*C-bagBlocked.size} 格（${R}×${C}，障碍 ${bagBlocked.size} 格）`; }
+  const PRESETS={ '4x4c':{R:4,C:4,blocked:[0]}, '5x5':{R:5,C:5,blocked:[]}, '5x6':{R:5,C:6,blocked:[]}, '6x6':{R:6,C:6,blocked:[]}, '6x7':{R:6,C:7,blocked:[]} };
+  $('preset').onchange=()=>{ const v=$('preset').value; if(v==='custom') return; const p=PRESETS[v]; $('rows').value=p.R; $('cols').value=p.C; bagBlocked=new Set(p.blocked); renderBagGrid(); };
+  $('applySize').onclick=()=>{ bagBlocked=new Set([...bagBlocked].filter(i=>i<bagRows()*bagCols())); $('preset').value='custom'; renderBagGrid(); };
+  $('clearBlocked').onclick=()=>{ bagBlocked.clear(); renderBagGrid(); };
+
+  // 全选 / 全不选：与「法宝可启用 ⇔ 其组别已启用」强关联不变量保持一致
+  $('selAll').onclick=()=>{
+    // 群组感知：若当前按某个具体组别筛选，则「全选」只作用于该组别（同步启用该组 + 勾选其法宝，保留已填数量）；
+    // 否则（全部 / 未分组）才作用于全部。
+    if(groupFilter && groupFilter!=='all' && groupFilter!=='ungrouped'){
+      const g=groups.find(x=>x.id===groupFilter); if(g) g.enabled=true;
+      library.forEach(t=>{ if(t.group===groupFilter){ const s=sel[t.id]||(sel[t.id]={include:true,count:t.count||0,priority:false}); s.include=true; } });
+      saveLibrary(); renderInventory(); renderGroups();
+    } else {
+      groups.forEach(g=>{ g.enabled=true; });
+      library.forEach(t=>{ const s=sel[t.id]||(sel[t.id]={include:true,count:t.count||0,priority:false}); s.include=true; });
+      saveLibrary(); renderInventory(); renderGroups();
+    }
+  };
+  $('selNone').onclick=()=>{
+    // 1) 取消所有法宝启用（确保 sel 条目存在，避免默认 include=true 在「仅展示已启用」下仍展示）
+    library.forEach(t=>{ const s=sel[t.id]||(sel[t.id]={include:false,count:0,priority:false}); s.include=false; });
+    // 2) 同步取消所有组别启用（组别管理面板随之全部取消勾选，与强关联不变量一致）
+    groups.forEach(g=>{ g.enabled=false; });
+    saveLibrary(); renderInventory(); renderGroups();
+  };
+  $('libFilter').querySelectorAll('button').forEach(b=>b.onclick=()=>{ libFilter=b.dataset.f; $('libFilter').querySelectorAll('button').forEach(x=>x.classList.remove('on')); b.classList.add('on'); renderInventory(); });
+  $('groupFilter').onchange=()=>{ groupFilter=$('groupFilter').value; renderInventory(); };
+  $('invSort').onchange=()=>renderInventory();
+  $('libSearch').oninput=()=>{ searchTerm=($('libSearch').value||'').trim().toLowerCase(); renderInventory(); };
+  $('newGroup').onclick=()=>{ let nm=$('newGroupName').value.trim()||('组别'+(groups.length+1)); let base=nm,k=2; while(groups.some(g=>g.name===nm)){ nm=base+' #'+k; k++; } groups.push({id:nm,name:nm,enabled:false}); $('newGroupName').value=''; saveLibrary(); renderGroups(); renderInventory(); };
+  function renderGroups(){
+    const box=$('groupList'); box.innerHTML='';
+    if(groups.length===0){ box.innerHTML='<div class="empty-note">暂无组别。新建组别后，在法宝表格的「组别」列把法宝归入；启用组别会默认勾选该组全部法宝（数量 0，需自行填写）。</div>'; }
+    groups.forEach(g=>{
+      const row=document.createElement('div'); row.className='group-row';
+      const cb=document.createElement('input'); cb.type='checkbox'; cb.checked=!!g.enabled; cb.onchange=()=>setGroupEnabled(g.id,cb.checked);
+      const nm=document.createElement('input'); nm.type='text'; nm.value=g.name; nm.className='gname'; nm.oninput=()=>{ g.name=nm.value; saveLibrary(); };
+      const del=document.createElement('button'); del.className='del'; del.textContent='删除'; del.onclick=()=>removeGroup(g.id);
+      row.append(cb,nm,del); box.appendChild(row);
+    });
+    renderGroupFilter();
+    const dg=$('drawGroup'); if(dg) dg.innerHTML=groupOptions(''); // 同步「添加法宝」的组别下拉
+    renderDmgSchoolSel(); renderDmgGroupSel();                     // 同步伤害计算器的流派/组别下拉
+  }
+  function renderGroupFilter(){
+    const sel2=$('groupFilter'); const cur=sel2.value; sel2.innerHTML='<option value="all">全部组别</option><option value="ungrouped">未分组</option>';
+    groups.forEach(g=>{ const o=document.createElement('option'); o.value=g.id; o.textContent=g.name; sel2.appendChild(o); });
+    if([...sel2.options].some(o=>o.value===cur)) sel2.value=cur; else { sel2.value='all'; groupFilter='all'; }
+  }
+  function setGroupEnabled(id,enabled){
+    const g=groups.find(x=>x.id===id); if(!g) return; g.enabled=enabled;
+    library.forEach(t=>{ if(t.group===id){ const s=sel[t.id]||(sel[t.id]={include:true,count:0,priority:false}); s.include=enabled; if(enabled){ t.count=0; s.count=0; } } });
+    saveLibrary(); renderInventory(); renderGroups();
+  }
+  function removeGroup(id){
+    const g=groups.find(x=>x.id===id); if(!g) return;
+    if(!confirm('删除组别「'+g.name+'」？组内法宝会变为「未分组」，不会被删除。')) return;
+    if(groupFilter===id) groupFilter='all';
+    library.forEach(t=>{ if(t.group===id) t.group=null; });
+    groups.splice(groups.indexOf(g),1); saveLibrary(); renderGroups(); renderInventory();
+  }
+  function groupOptions(cur){ let h='<option value="">未分组</option>'; groups.forEach(g=>{ h+='<option value="'+escapeHtml(g.id)+'"'+(cur===g.id?' selected':'')+'>'+escapeHtml(g.name)+'</option>'; }); return h; }
+
+  /* ===================== 法宝详情弹窗：查看全部信息 + 录入技能参数 ===================== */
+  let dtIdx=-1, dtDraft=null;
+  function getPath(o,p){ const ks=p.split('.'); let c=o; for(const k of ks){ if(c==null) return undefined; c=c[k]; } return c; }
+  function setPath(o,p,v){ const ks=p.split('.'); let c=o; for(let i=0;i<ks.length-1;i++) c=c[ks[i]]; c[ks[ks.length-1]]=v; }
+  function fNum(p,label,step){ const v=getPath(dtDraft,p); return '<div><label>'+label+'</label><input type="number" step="'+(step||'0.01')+'" class="skf" data-p="'+p+'" value="'+(Number(v)||0)+'"></div>'; }
+  function openDetail(i){
+    const t=library[i]; if(!t) return;
+    dtIdx=i;
+    dtDraft = effSkill(t) || normalizeSkill({on:true,every:1,from:1,hold:true,cycle:[emptyEff()],desc:''});
+    $('dtTitle').textContent='法宝详情 · '+t.name;
+    renderDetail();
+    $('dtMask').classList.add('on');
+  }
+  function closeDetail(){ $('dtMask').classList.remove('on'); dtIdx=-1; dtDraft=null; }
+  function renderDetail(){
+    const t=library[dtIdx]; if(!t) return;
+    const s=sel[t.id]||{}; const g=t.group?groups.find(x=>x.id===t.group):null;
+    const BT={none:'无加成',self:'自身受加成',buff:'给他人加成'}, BA={hp:'生命值',def:'防御力',atk:'攻击力'};
+    $('dtMsg').textContent = t.skill ? '技能参数：自定义' : (DEFAULT_SKILLS[t.name] ? '技能参数：内置预置（保存后转为自定义）' : '技能参数：尚未配置');
+    let h='';
+    /* --- 基本信息（只读展示，编辑仍在表格里做） --- */
+    h+='<div class="sk-sub">基本信息</div><div class="dt-info-grid">'+
+      '<div class="dt-info-card"><div class="dt-info-title">名称</div><div class="dt-info-body">'+escapeHtml(t.name)+(t.key?' <span style="color:#e6342b">★重点</span>':'')+'</div></div>'+
+      '<div class="dt-info-card"><div class="dt-info-title">组别</div><div class="dt-info-body">'+escapeHtml(g?g.name:'未分组')+'</div></div>'+
+      '<div class="dt-info-card"><div class="dt-info-title">占格</div><div class="dt-info-body">'+t.cells.length+' 格</div></div>'+
+      '<div class="dt-info-card"><div class="dt-info-title">当前数量</div><div class="dt-info-body">'+(t.count||0)+'</div></div>'+
+      '<div class="dt-info-card"><div class="dt-info-title">生命</div><div class="dt-info-body">'+dmgFmt((t.base&&t.base.hp)||0)+'</div></div>'+
+      '<div class="dt-info-card"><div class="dt-info-title">防御</div><div class="dt-info-body">'+dmgFmt((t.base&&t.base.def)||0)+'</div></div>'+
+      '<div class="dt-info-card"><div class="dt-info-title">攻击</div><div class="dt-info-body">'+dmgFmt((t.base&&t.base.atk)||0)+'</div></div>'+
+      '<div class="dt-info-card"><div class="dt-info-title">加成</div><div class="dt-info-body">'+(t.bonusType==='none'?'无':((t.bonusRate||0)+'% · '+BT[t.bonusType]+' · '+BA[t.bonusAttr||'hp']))+'</div></div>'+
+      '<div class="dt-info-card"><div class="dt-info-title">启用状态</div><div class="dt-info-body">'+(s.include?'已启用':'未启用')+'</div></div>'+
+      '</div><div style="margin-top:9px">'+shapeMini(t.cells,t.color)+'</div>';
+    /* --- 技能参数 --- */
+    h+='<div class="sk-sub" style="margin-top:14px">技能参数（伤害计算器读取此处）</div>';
+    h+='<div class="row" style="align-items:flex-end;gap:10px">'+
+       '<label style="display:flex;align-items:center;gap:6px;margin:0"><input type="checkbox" id="skOn" '+(dtDraft.on?'checked':'')+'> 参与输出计算</label>'+
+       '<div><label>每 N 回合释放</label><input type="number" min="1" step="1" id="skEvery" value="'+dtDraft.every+'" style="width:88px"></div>'+
+       '<div><label>从第几回合起</label><input type="number" min="1" step="1" id="skFrom" value="'+dtDraft.from+'" style="width:88px"></div>'+
+       '<div><label>轮换到末段后</label><select id="skHold" style="width:130px"><option value="1"'+(dtDraft.hold?' selected':'')+'>保持最后一段</option><option value="0"'+(dtDraft.hold?'':' selected')+'>循环回第一段</option></select></div>'+
+       '</div>';
+    h+='<label>技能描述</label><input type="text" class="sk-note" id="skDesc" value="'+escapeHtml(dtDraft.desc||'')+'" placeholder="用一句话描述这件法宝的技能">';
+    dtDraft.cycle.forEach((e,ci)=>{
+      h+='<div class="sk-seg"><h5><span class="badge">第 '+(ci+1)+' 次释放</span>'+
+         (dtDraft.cycle.length>1?'<button class="del skDelSeg" data-c="'+ci+'" style="margin-left:auto;padding:2px 8px">删除本段</button>':'')+'</h5>'+
+         '<div class="sk-sub">伤害系数（0 = 本段不造成伤害）</div><div class="sk-grid">'+
+           fNum('cycle.'+ci+'.dmg.atk','×攻击力')+fNum('cycle.'+ci+'.dmg.def','×防御力')+
+           fNum('cycle.'+ci+'.dmg.hpMax','×最大生命')+fNum('cycle.'+ci+'.dmg.shield','×当前护盾')+
+         '</div>'+
+         '<div class="sk-sub">产生护盾</div><div class="sk-grid">'+
+           fNum('cycle.'+ci+'.shield.atk','×攻击力')+fNum('cycle.'+ci+'.shield.def','×防御力')+fNum('cycle.'+ci+'.shield.hpMax','×最大生命')+
+         '</div>'+
+         '<div class="sk-sub">释放「前」叠增益（本次伤害即享受）</div><div class="sk-grid">'+
+           GAIN_KEYS.map(k=>fNum('cycle.'+ci+'.gainPre.'+k,GAIN_CN[k],'1')).join('')+
+         '</div>'+
+         '<div class="sk-sub">释放「后」叠增益</div><div class="sk-grid">'+
+           GAIN_KEYS.map(k=>fNum('cycle.'+ci+'.gain.'+k,GAIN_CN[k],'1')).join('')+
+         '</div>'+
+         '<label>本段说明</label><input type="text" class="sk-note skf" data-p="cycle.'+ci+'.note" value="'+escapeHtml(e.note||'')+'">'+
+         '</div>';
+    });
+    h+='<div class="row" style="margin-top:9px"><button id="skAddSeg" class="ghost">＋ 增加一个轮换段</button>'+
+       (DEFAULT_SKILLS[t.name]?'<button id="skReset" class="ghost">↺ 恢复内置预置</button>':'')+
+       '<span class="hint" style="margin:0 0 0 6px">系数按「倍率」填写：2.0 = 200%。护盾无上限且不消耗。</span></div>';
+    $('dtBody').innerHTML=h;
+    /* 绑定 */
+    $('dtBody').querySelectorAll('.skf').forEach(el=>{
+      el.onchange=()=>{ const p=el.dataset.p; setPath(dtDraft,p, el.type==='number'?(Number(el.value)||0):el.value); };
+    });
+    $('skOn').onchange=e=>{ dtDraft.on=e.target.checked; };
+    $('skEvery').onchange=e=>{ dtDraft.every=Math.max(1,parseInt(e.target.value)||1); e.target.value=dtDraft.every; };
+    $('skFrom').onchange=e=>{ dtDraft.from=Math.max(1,parseInt(e.target.value)||1); e.target.value=dtDraft.from; };
+    $('skHold').onchange=e=>{ dtDraft.hold=(e.target.value==='1'); };
+    $('skDesc').onchange=e=>{ dtDraft.desc=e.target.value; };
+    $('skAddSeg').onclick=()=>{ dtDraft.cycle.push(emptyEff()); renderDetail(); };
+    $('dtBody').querySelectorAll('.skDelSeg').forEach(el=>el.onclick=()=>{ dtDraft.cycle.splice(+el.dataset.c,1); if(!dtDraft.cycle.length) dtDraft.cycle=[emptyEff()]; renderDetail(); });
+    const rs=$('skReset'); if(rs) rs.onclick=()=>{ dtDraft=normalizeSkill(DEFAULT_SKILLS[t.name]); renderDetail(); };
+  }
+  $('dtX').onclick=closeDetail; $('dtCancel').onclick=closeDetail;
+  $('dtMask').onclick=e=>{ if(e.target===$('dtMask')) closeDetail(); };
+  $('dtSave').onclick=()=>{
+    if(dtIdx<0||!dtDraft) return closeDetail();
+    library[dtIdx].skill = normalizeSkill(dtDraft);
+    saveLibrary(); renderInventory(); renderDmgOrder();
+    closeDetail();
+  };
+
+  /* ===================== 伤害引擎（通用：rule 描述增益通道 gains + 特质钩子 traits，引擎只解释 rule） =====================
+     流派公式 JSON 结构（详见 skill treasure-school-formula / formula-spec.md）：
+       rule.gains : { 通道键:{ label, cap, perRound, boost:{atk,def,hp,zeng} } }   —— 每回合自动 +perRound（受 cap 限制）
+       rule.traits: [ {type:'reReleaseOnRoundEnd', gain, atLeast, chance},
+                      {type:'applyStatusOnHit', status},
+                      {type:'attackBonusOnStatus', status, pctOf:'atk'|'def'|'hp'|'shield', pct, dmgType},
+                      {type:'attackBonusOnHit', pctOf:'atk'|'def'|'hp'|'shield', pct, dmgType} ]
+     伤害 = (基础伤害 + 状态额外伤害) × 增伤；增伤由各通道 boost.zeng 累加。 */
+  const TI_RULE = {
+    gains:{
+      lianti:  { label:'炼体', cap:60, perRound:0,  boost:{ atk:0.01, hp:0.005 } },
+      jinshen: { label:'金身', cap:50, perRound:10, boost:{ zeng:0.01 } },
+      chuishi: { label:'锤势', cap:20, perRound:5,  boost:{ def:0.05 } },
+      fatian:  { label:'法天象地', cap:3, perRound:0, boost:{ atk:0.20, def:0.20 } }
+    },
+    traits:[
+      { type:'reReleaseOnRoundEnd', gain:'jinshen', atLeast:50, chance:0.4 }
+    ]
+  };
+  /* 流派配置：id 内部键；name 显示名；group 组别（与计算组别一致）；rule 非空才启用计算。
+     内置流派写于此；用户经「导入流派公式」新增/覆盖的流派存 localStorage（SCHOOL_DEFS_KEY），启动时合并。 */
+  const BUILTIN_SCHOOLS = {
+    ti:{ id:'ti', name:'体系', group:'体', rule:TI_RULE, builtin:true }
+  };
+  const SCHOOL_DEFS_KEY='dmgSchoolDefs';
+  let DMG_SCHOOLS = {};
+  function loadStoredSchools(){ try{ const a=JSON.parse(localStorage.getItem(SCHOOL_DEFS_KEY)||'[]'); return Array.isArray(a)?a:[]; }catch(e){ return []; } }
+  function applyStoredSchools(){
+    DMG_SCHOOLS={};
+    for(const k in BUILTIN_SCHOOLS) DMG_SCHOOLS[k]=Object.assign({},BUILTIN_SCHOOLS[k]);
+    loadStoredSchools().forEach(s=>{ if(s&&s.id) DMG_SCHOOLS[s.id]=Object.assign({}, (DMG_SCHOOLS[s.id]||{id:s.id,group:s.group||'体'}), s); });
+  }
+  function saveStoredSchools(){
+    try{
+      const arr=Object.values(DMG_SCHOOLS).map(s=>({ id:s.id, name:s.name, group:s.group||'体', rule:s.rule||null, desc:s.desc||'', skills:s.skills||null }));
+      localStorage.setItem(SCHOOL_DEFS_KEY, JSON.stringify(arr));
+    }catch(e){}
+  }
+  applyStoredSchools();
+  /* ---------- 通用增益 / 伤害计算（只认 rule.gains / rule.traits） ---------- */
+  function gainKeys(rule){ return rule && rule.gains ? Object.keys(rule.gains) : []; }
+  function dmgAtk(s,B,rule){ let m=1; for(const k of gainKeys(rule)){ const b=rule.gains[k].boost; if(b&&b.atk) m+=s[k]*b.atk; } return B.atk*m; }
+  function dmgDef(s,B,rule){ let m=1; for(const k of gainKeys(rule)){ const b=rule.gains[k].boost; if(b&&b.def) m+=s[k]*b.def; } return B.def*m; }
+  function dmgHp (s,B,rule){ let m=1; for(const k of gainKeys(rule)){ const b=rule.gains[k].boost; if(b&&b.hp)  m+=s[k]*b.hp;  } return B.hp*m; }
+  function dmgZeng(s,rule){ let z=1; for(const k of gainKeys(rule)){ const b=rule.gains[k].boost; if(b&&b.zeng) z+=s[k]*b.zeng; } return z; }
+  function gainCap(rule,k){ return (rule.gains[k]&&rule.gains[k].cap!=null)? rule.gains[k].cap : Infinity; }
+  function applySkillGain(s,gainObj,rule){ if(!gainObj) return; for(const k in gainObj){ if(!(k in rule.gains)) continue; s[k]=Math.min(gainCap(rule,k), s[k]+(gainObj[k]||0)); } }
+  function dmgByType(t,s,B,rule){ if(t==='atk') return dmgAtk(s,B,rule); if(t==='def') return dmgDef(s,B,rule); if(t==='hp') return dmgHp(s,B,rule); if(t==='shield') return s.shield; return 0; }
+  function unitFires(u,round){
+    const sk=u.skill; if(!sk||!sk.on) return false;
+    if(round < sk.from) return false;
+    return ((round - sk.from) % sk.every)===0;
+  }
+  function pickEff(sk,fired){
+    const n=sk.cycle.length; if(!n) return null;
+    return sk.hold ? sk.cycle[Math.min(fired,n-1)] : sk.cycle[fired % n];
+  }
+  /* 单件法宝的一次释放：返回 {d, extra}；target.status 为持续状态集合（整场战斗共享） */
+  function fireUnit(u,s,B,rule,target){
+    const e=pickEff(u.skill,u.fired); u.fired++;
+    if(!e) return { d:0, extra:0 };
+    applySkillGain(s,e.gainPre,rule);
+    let base = dmgAtk(s,B,rule)*e.dmg.atk + dmgDef(s,B,rule)*e.dmg.def + dmgHp(s,B,rule)*e.dmg.hpMax + s.shield*e.dmg.shield;
+    let extra = 0;
+    for(const t of (rule.traits||[])){
+      if(t.type==='attackBonusOnStatus' && target.status.has(t.status))
+        extra += (t.pct||0) * dmgByType(t.pctOf,s,B,rule);
+      else if(t.type==='attackBonusOnHit')
+        extra += (t.pct||0) * dmgByType(t.pctOf,s,B,rule);
+    }
+    const d=(base+extra)*dmgZeng(s,rule);
+    if(e.shield.atk||e.shield.def||e.shield.hpMax)
+      s.shield += dmgAtk(s,B,rule)*e.shield.atk + dmgDef(s,B,rule)*e.shield.def + dmgHp(s,B,rule)*e.shield.hpMax;
+    applySkillGain(s,e.gain,rule);
+    for(const t of (rule.traits||[])) if(t.type==='applyStatusOnHit') target.status.add(t.status);
+    return { d, extra };
+  }
+  /* units: [{name,label,skill}]；mode: 'exp' 期望（二次释放×概率）/ 'max' 极限（全触发）；rule: 流派公式 */
+  function dmgSimulate(units,B,rounds,mode,rule){
+    const s={ shield:0 }; gainKeys(rule).forEach(k=> s[k]=0);
+    const target={ status:new Set() };
+    const us=units.map(u=>({name:u.name,label:u.label,skill:u.skill,fired:0}));
+    const per=[], byName={}, byInst={};
+    let total=0;
+    for(let round=1; round<=rounds; round++){
+      for(const k of gainKeys(rule)){ const g=rule.gains[k]; if(g.perRound) s[k]=Math.min(gainCap(rule,k), s[k]+g.perRound); }
+      const rows={}; let normal=0, re=0;
+      const bump=(u,v,isRe,ex)=>{
+        const kk=isRe?'re':'normal';
+        if(!rows[u.name]) rows[u.name]={normal:0,re:0,inst:{},extra:0};
+        rows[u.name][kk]+=v; rows[u.name].extra+=(ex||0);
+        if(!rows[u.name].inst[u.label]) rows[u.name].inst[u.label]={normal:0,re:0};
+        rows[u.name].inst[u.label][kk]+=v;
+        if(!byName[u.name]) byName[u.name]={normal:0,re:0};
+        byName[u.name][kk]+=v;
+        if(!byInst[u.label]) byInst[u.label]={name:u.name,normal:0,re:0};
+        byInst[u.label][kk]+=v;
+      };
+      for(const u of us){ if(!unitFires(u,round)) continue; const r=fireUnit(u,s,B,rule,target); normal+=r.d; if(r.d) bump(u,r.d,false,r.extra); }
+      for(const t of (rule.traits||[])){
+        if(t.type!=='reReleaseOnRoundEnd') continue;
+        if(s[t.gain] < (t.atLeast||0)) continue;
+        const ww = mode==='max' ? 1 : (t.chance||0);
+        for(const u of us){
+          if(!unitFires(u,round)) continue;
+          u.fired--;                               // 二次释放沿用本回合的效果段
+          const r2=fireUnit(u,s,B,rule,target); const d2=r2.d*ww; re+=d2; if(d2) bump(u,d2,true,r2.extra*ww);
+        }
+      }
+      per.push({ round, normal, re, total:normal+re, rows, state:Object.assign({},s) });
+      total+=normal+re;
+    }
+    return { total, per, byName, byInst };
+  }
+
+  /* ===================== 伤害计算模块 UI ===================== */
+  const TI_RE=/^体(系)?$/;
+  function isTiGroup(gid){ return TI_RE.test(String(gid||'')); }
+  let dmgOrder=[];      // 释放序列 [{id,name}]
+  let dmgLast=null;     // 上一次计算结果（自动对比基准）
+  let dmgBase=null;     // 手动锁定的对比基准
+  let dmgSchool='';     // 当前流派（''=未选）
+  function curSchool(){ return DMG_SCHOOLS[dmgSchool]||null; }
+  function schoolSupported(){ return !!(DMG_SCHOOLS[dmgSchool]&&DMG_SCHOOLS[dmgSchool].rule); }
+  /* 解析某法宝在当前流派下的生效技能：流派自带 skills 覆盖优先，否则回退法宝自身/预置 */
+  function resolveSkill(school,t){
+    if(school && school.skills && school.skills[t.name]) return normalizeSkill(school.skills[t.name]);
+    return effSkill(t);
+  }
+  function dmgFmt(n){ return Math.round(n||0).toLocaleString('en-US'); }
+  function deltaSpan(cur,prev,unit){
+    if(prev==null||!isFinite(prev)) return '';
+    const d=cur-prev;
+    if(Math.abs(d)<0.5) return '<span class="flat">持平</span>';
+    return '<span class="'+(d>0?'up':'down')+'">'+(d>0?'+':'')+dmgFmt(d)+(unit||'')+'</span>';
+  }
+  function deltaPct(cur,prev){
+    if(prev==null||!isFinite(prev)||Math.abs(prev)<1e-9) return '';
+    const r=(cur/prev-1)*100;
+    if(Math.abs(r)<0.05) return '<span class="flat">±0.0%</span>';
+    return '<span class="'+(r>0?'up':'down')+'">'+(r>0?'+':'')+r.toFixed(1)+'%</span>';
+  }
+  function describeRule(rule, desc){
+    const gl={}; for(const k in rule.gains) gl[k]=rule.gains[k].label||k;
+    const attrMap={atk:'攻击',def:'防御',hp:'生命',shield:'护盾'};
+    let h='';
+    if(desc) h+='<div class="t" style="color:var(--accent-d)">'+escapeHtml(desc)+'</div>';
+    const gs=Object.keys(rule.gains);
+    if(gs.length){
+      h+='<div class="t"><b>增益通道</b></div>';
+      for(const k of gs){
+        const g=rule.gains[k], L=gl[k], bs=[];
+        if(g.boost){ const b=g.boost; if(b.atk) bs.push('攻击+'+Math.round(b.atk*100)+'%/层'); if(b.def) bs.push('防御+'+Math.round(b.def*100)+'%/层'); if(b.hp) bs.push('生命+'+Math.round(b.hp*100)+'%/层'); if(b.zeng) bs.push('增伤+'+Math.round(b.zeng*100)+'%/层'); }
+        let line='· 【'+escapeHtml(L)+'】上限 '+g.cap+' 层';
+        if(g.perRound) line+='；每回合 +'+g.perRound;
+        if(bs.length) line+='；'+bs.join('，');
+        h+='<div class="t sub">'+line+'</div>';
+      }
+    }
+    const tr=rule.traits||[];
+    if(tr.length){
+      h+='<div class="t"><b>特质</b></div>';
+      for(const t of tr){
+        if(t.type==='reReleaseOnRoundEnd'){
+          h+='<div class="t sub">· 【'+escapeHtml(gl[t.gain]||t.gain)+'】达到 '+t.atLeast+' 层时，每回合结束有 '+Math.round(t.chance*100)+'% 概率二次释放本回合放过的法宝（每件独立）</div>';
+        } else if(t.type==='applyStatusOnHit'){
+          h+='<div class="t sub">· 命中时为目标附加【'+escapeHtml(t.status)+'】状态</div>';
+        } else if(t.type==='attackBonusOnStatus'){
+          h+='<div class="t sub">· 对处于【'+escapeHtml(t.status)+'】状态的目标，额外造成 '+Math.round(t.pct*100)+'% '+attrMap[t.pctOf]+'的'+(t.dmgType?escapeHtml(t.dmgType)+'系':'')+'伤害</div>';
+        } else if(t.type==='attackBonusOnHit'){
+          h+='<div class="t sub">· 造成伤害时，额外附带 '+Math.round(t.pct*100)+'% '+attrMap[t.pctOf]+'的'+(t.dmgType?escapeHtml(t.dmgType)+'系':'')+'伤害（无状态限制）</div>';
+        } else {
+          h+='<div class="t sub">· 未知特质类型：'+(t.type||'')+'</div>';
+        }
+      }
+    }
+    if(!gs.length && !tr.length) h+='<div class="t" style="color:#c0392b">该流派公式未定义任何增益或特质。</div>';
+    return h;
+  }
+  function renderDmgSchoolHead(){
+    const head=$('dmgSchoolHead'); if(!head) return;
+    const sc=curSchool();
+    const box=$('dmgSchoolRules');
+    if(!sc){ head.style.display='none'; if(box) box.style.display='none'; return; }
+    head.style.display='';
+    head.innerHTML='流派：<b>'+escapeHtml(sc.name)+'</b>'+(sc.group?('　<span class="muted">['+escapeHtml(sc.group)+'组]</span>'):'');
+    if(box){
+      box.style.display='';
+      if(sc.rule){ box.innerHTML=describeRule(sc.rule, sc.desc); }
+      else { box.innerHTML='<div class="t" style="color:#c0392b">该流派伤害公式尚未实现，暂不支持计算。</div>'; }
+    }
+  }
+  function schoolNameExists(name, exceptId, group){
+    const n=(name||'').trim();
+    return Object.values(DMG_SCHOOLS).some(s=>s.id!==exceptId && (s.name||'').trim()===n && (group? s.group===group : true));
+  }
+  function commitSchoolName(sc, raw){
+    const n=(raw||'').trim().slice(0,12);
+    if(!n){ alert('流派名称不可为空。'); return false; }
+    if(schoolNameExists(n, sc.id, sc.group)){ alert('流派名称「'+n+'」在本组别已存在，不可重复。'); return false; }
+    sc.name=n; saveStoredSchools(); renderDmgSchoolSel(); renderDmgSchoolHead();
+    return true;
+  }
+  /* 导入流派公式：obj 需含 name 与 rule{gains,traits}；可选 group/id/desc/skills（法宝名→skill）。
+     同 group + 同 name 已存在则覆盖更新，否则新建。 */
+  function importSchoolDef(obj){
+    if(!obj || typeof obj!=='object' || Array.isArray(obj)) throw new Error('格式错误：顶层应为对象');
+    const name=(obj.name||'').trim();
+    if(!name) throw new Error('缺少 name（流派显示名）');
+    if(!obj.rule || typeof obj.rule!=='object') throw new Error('缺少 rule（公式规则对象）');
+    const rule=obj.rule;
+    if(!rule.gains || typeof rule.gains!=='object' || Array.isArray(rule.gains)) throw new Error('rule.gains 应为对象（增益通道定义）');
+    if(!Array.isArray(rule.traits)) throw new Error('rule.traits 应为数组');
+    for(const k in rule.gains){
+      const g=rule.gains[k];
+      if(typeof g!=='object') throw new Error('gains.'+k+' 应为对象');
+      if(typeof g.cap!=='number') throw new Error('gains.'+k+'.cap 应为数字（层数上限）');
+      if(g.boost && typeof g.boost!=='object') throw new Error('gains.'+k+'.boost 应为对象');
+    }
+    const TYPES=['reReleaseOnRoundEnd','applyStatusOnHit','attackBonusOnStatus','attackBonusOnHit'];
+    for(const t of rule.traits){
+      if(!t || typeof t!=='object') throw new Error('traits 元素应为对象');
+      if(!TYPES.includes(t.type)) throw new Error('未知特质类型：'+(t.type||'空')+'（仅支持 '+TYPES.join('/')+'）');
+      if(t.type==='reReleaseOnRoundEnd'){
+        if(!(t.gain in rule.gains)) throw new Error('reReleaseOnRoundEnd.gain「'+(t.gain||'')+'」不在 gains 中');
+        if(typeof t.atLeast!=='number'||typeof t.chance!=='number') throw new Error('reReleaseOnRoundEnd 需 atLeast/chance 数字');
+      } else if(t.type==='applyStatusOnHit'){
+        if(!t.status) throw new Error('applyStatusOnHit.status 必填');
+      } else if(t.type==='attackBonusOnStatus'){
+        if(!t.status) throw new Error('attackBonusOnStatus.status 必填');
+        if(!['atk','def','hp','shield'].includes(t.pctOf)) throw new Error('attackBonusOnStatus.pctOf 须为 atk/def/hp/shield');
+        if(typeof t.pct!=='number') throw new Error('attackBonusOnStatus.pct 应为数字');
+      } else if(t.type==='attackBonusOnHit'){
+        if(!['atk','def','hp','shield'].includes(t.pctOf)) throw new Error('attackBonusOnHit.pctOf 须为 atk/def/hp/shield');
+        if(typeof t.pct!=='number') throw new Error('attackBonusOnHit.pct 应为数字');
+      }
+    }
+    let skills=null;
+    if(obj.skills && typeof obj.skills==='object' && !Array.isArray(obj.skills)){
+      skills={}; for(const k in obj.skills) skills[k]=normalizeSkill(obj.skills[k]);
+    }
+    const group=(obj.group&&String(obj.group).trim())? String(obj.group).trim() : ($('dmgGroup').value||'体');
+    let sid=null;
+    for(const id in DMG_SCHOOLS){ const s=DMG_SCHOOLS[id]; if(s.group===group && (s.name||'').trim()===name){ sid=id; break; } }
+    if(!sid){
+      let wantId=(obj.id&&String(obj.id).trim())? String(obj.id).trim() : null;
+      if(wantId && DMG_SCHOOLS[wantId] && DMG_SCHOOLS[wantId].group!==group) wantId=null; // 避免误覆盖其它组别
+      sid = wantId || ('usr_'+Date.now().toString(36));
+    }
+    DMG_SCHOOLS[sid]={ id:sid, name, group, rule, skills:skills, desc:(obj.desc||''), builtin:false };
+    saveStoredSchools();
+    return sid;
+  }
+  function startEditSchoolName(){
+    const sc=curSchool(); if(!sc) return;
+    const head=$('dmgSchoolHead'); if(!head) return;
+    const inp=document.createElement('input');
+    inp.type='text'; inp.value=sc.name; inp.maxLength=12; inp.className='sk-name-input';
+    head.innerHTML=''; head.appendChild(document.createTextNode('流派：'));
+    const b=document.createElement('b'); b.appendChild(inp); head.appendChild(b);
+    inp.focus(); inp.select();
+    let done=false;
+    const finish=(ok)=>{ if(done) return; done=true; if(ok) commitSchoolName(sc, inp.value); renderDmgSchoolHead(); };
+    inp.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); finish(true); } else if(e.key==='Escape'){ e.preventDefault(); finish(false); } });
+    inp.addEventListener('blur',()=>finish(true));
+  }
+  function renderDmgSchoolSel(){
+    const s=$('dmgSchool'); if(!s) return;
+    s.innerHTML='';
+    const ph=document.createElement('option'); ph.value=''; ph.textContent='请选择流派'; s.appendChild(ph);
+    const gid=$('dmgGroup').value;
+    Object.values(DMG_SCHOOLS).filter(sc=>sc.group===gid).forEach(sc=>{
+      const o=document.createElement('option'); o.value=sc.id; o.textContent=sc.name+(sc.rule?'':'（暂不支持）'); s.appendChild(o);
+    });
+    s.value = (dmgSchool && DMG_SCHOOLS[dmgSchool] && DMG_SCHOOLS[dmgSchool].group===gid)? dmgSchool : '';
+  }
+  function renderDmgSchoolArea(){
+    const box=$('dmgSchoolBox'); if(!box) return;
+    const gid=$('dmgGroup').value;
+    const sc=curSchool();
+    if(sc && sc.group!==gid){ dmgSchool=''; }
+    box.style.display='';
+    renderDmgSchoolSel();
+    const sc2=curSchool();
+    $('dmgSchoolEdit').disabled = !sc2;
+    renderDmgSchoolHead();
+  }
+  function renderDmgGroupSel(){
+    const s=$('dmgGroup'); if(!s) return;
+    const cur=s.value;
+    s.innerHTML='';
+    groups.forEach(g=>{ const o=document.createElement('option'); o.value=g.id; o.textContent=g.name; s.appendChild(o); });
+    if(groups.length===0){ s.innerHTML='<option value="">（暂无组别）</option>'; return; }
+    if([...s.options].some(o=>o.value===cur)) s.value=cur; else s.value=groups[0].id;
+  }
+  function skillTag(t){
+    const sk=effSkill(t);
+    if(!sk) return '<span class="tag bad">无技能参数</span>';
+    if(!sk.on) return '<span class="tag mute">不参与输出</span>';
+    if(!skillHasContent(sk)) return '<span class="tag bad">系数待填</span>';
+    let s='每'+(sk.every>1?sk.every+'回合':'回合');
+    if(sk.from>1) s+='·第'+sk.from+'回合起';
+    return '<span class="tag">'+s+'</span>';
+  }
+  function renderDmgOrder(){
+    const box=$('dmgOrder'); if(!box) return;
+    box.innerHTML='';
+    if(dmgOrder.length===0){ box.innerHTML='<div class="empty-note">序列为空。点「从宝鉴读取」把体系法宝按数量展开成释放顺序。</div>'; return; }
+    dmgOrder.forEach((o,i)=>{
+      const t=library.find(x=>x.id===o.id);
+      const d=document.createElement('div');
+      d.className='ord-item'; d.draggable=true; d.dataset.i=i;
+      d.innerHTML='<span class="no">'+(i+1)+'</span><span class="nmx">'+escapeHtml(o.name)+'</span>'+
+        (t?skillTag(t):'<span class="tag bad">已从宝鉴移除</span>')+
+        '<button class="mv up-b" title="上移">▲</button><button class="mv dn-b" title="下移">▼</button>';
+      d.querySelector('.up-b').onclick=ev=>{ ev.stopPropagation(); if(i>0){ const a=dmgOrder.splice(i,1)[0]; dmgOrder.splice(i-1,0,a); renderDmgOrder(); } };
+      d.querySelector('.dn-b').onclick=ev=>{ ev.stopPropagation(); if(i<dmgOrder.length-1){ const a=dmgOrder.splice(i,1)[0]; dmgOrder.splice(i+1,0,a); renderDmgOrder(); } };
+      d.ondragstart=ev=>{ ev.dataTransfer.setData('text/plain',String(i)); d.classList.add('dragging'); };
+      d.ondragend=()=>{ d.classList.remove('dragging'); box.querySelectorAll('.ord-item').forEach(x=>x.classList.remove('over')); };
+      d.ondragover=ev=>{ ev.preventDefault(); d.classList.add('over'); };
+      d.ondragleave=()=>d.classList.remove('over');
+      d.ondrop=ev=>{ ev.preventDefault(); d.classList.remove('over');
+        const from=parseInt(ev.dataTransfer.getData('text/plain')); const to=i;
+        if(isNaN(from)||from===to) return;
+        const a=dmgOrder.splice(from,1)[0]; dmgOrder.splice(to,0,a); renderDmgOrder(); };
+      box.appendChild(d);
+    });
+    const bad=dmgOrder.filter(o=>{ const t=library.find(x=>x.id===o.id); const sk=t?effSkill(t):null; return !sk||!sk.on||!skillHasContent(sk); }).length;
+    $('dmgOrderInfo').innerHTML='序列共 <b>'+dmgOrder.length+'</b> 件法宝'+
+      (bad? ' · <span style="color:#c0392b">其中 '+bad+' 件无有效输出参数（只占顺序位）</span>' : ' · 全部具备输出参数');
+  }
+  // 展开为引擎单元：同名法宝按出现次序编号，便于「按名聚合、可展开到每件」的归因
+  function dmgUnits(){
+    const seen={}; const sc=curSchool();
+    return dmgOrder.map(o=>{
+      const t=library.find(x=>x.id===o.id);
+      seen[o.name]=(seen[o.name]||0)+1;
+      return { name:o.name, label:o.name+' #'+seen[o.name], skill: t? resolveSkill(sc,t): null };
+    });
+  }
+  function loadDmgOrder(silent){
+    const gid=$('dmgGroup').value;
+    if(!schoolSupported()){
+      dmgOrder=[]; renderDmgOrder();
+      const sc=curSchool();
+      const tip = sc? ('当前流派「'+escapeHtml(sc.name)+'」暂不支持计算') : '请先选择流派';
+      $('dmgMsg').innerHTML='<span style="color:#c0392b">'+tip+'</span>';
+      $('dmgOverview').innerHTML='';
+      const hasAny = Object.values(DMG_SCHOOLS).some(s=>s.group===gid);
+      if(!silent) $('dmgOut').innerHTML='<div class="dmg-warn">'+(sc? ('当前流派「'+escapeHtml(sc.name)+'」的伤害公式尚未实现，暂不支持计算。') :
+        (hasAny? '请先在上方「流派」处选择流派，再「从宝鉴读取」。' : '当前组别「'+escapeHtml(gid||'未选择')+'」暂无流派，可点击下方「导入流派公式」新增。'))+'</div>';
+      return;
+    }
+    dmgOrder=[];
+    library.forEach(t=>{
+      if(t.group!==gid) return;
+      const s=sel[t.id]; if(!s||!s.include) return;
+      const n=Math.max(0,s.count||0);
+      for(let k=0;k<n;k++) dmgOrder.push({ id:t.id, name:t.name });
+    });
+    renderDmgOrder();
+    $('dmgOverview').innerHTML='';
+    $('dmgOut').innerHTML='';
+    if(!silent) $('dmgMsg').textContent = dmgOrder.length? ('已从宝鉴读取 '+dmgOrder.length+' 件（按数量展开）。') : '当前组别下没有「已启用且数量>0」的法宝。';
+  }
+  function runDmg(){
+    const gid=$('dmgGroup').value;
+    if(!schoolSupported()){ $('dmgMsg').innerHTML='<span style="color:#c0392b">请先选择流派</span>'; loadDmgOrder(); return; }
+    const _sc0=curSchool();
+    if(!schoolSupported()){ $('dmgMsg').innerHTML='<span style="color:#c0392b">'+(_sc0?('当前流派「'+escapeHtml(_sc0.name)+'」暂不支持计算'):'请先选择流派')+'</span>'; return; }
+    if(dmgOrder.length===0){ $('dmgMsg').innerHTML='<span style="color:#c0392b">释放序列为空，请先点「从宝鉴读取」。</span>'; return; }
+    const B={ atk:Number($('dmgAtk').value)||0, def:Number($('dmgDef').value)||0, hp:Number($('dmgHp').value)||0 };
+    const rounds=Math.min(30,Math.max(1,parseInt($('dmgRounds').value)||10));
+    $('dmgRounds').value=rounds;
+    const units=dmgUnits();
+    const exp=dmgSimulate(units,B,rounds,'exp',_sc0.rule);
+    const max=dmgSimulate(units,B,rounds,'max',_sc0.rule);
+    const cur={ order:dmgOrder.map(o=>o.name), rounds, B, exp, max, ts:Date.now() };
+    const prev = dmgBase || dmgLast;
+    renderDmgOut(cur, prev, !!dmgBase);
+    dmgLast=cur;
+    $('dmgMsg').textContent='计算完成（'+rounds+' 回合 · '+units.length+' 件法宝）。';
+  }
+  /* 求最优顺序：随机重启爬山，限时搜索期望伤害最高的排列 */
+  function bestDmgOrder(){
+    const gid=$('dmgGroup').value;
+    if(!schoolSupported()){ $('dmgMsg').innerHTML='<span style="color:#c0392b">请先选择流派</span>'; loadDmgOrder(); return; }
+    const _sc1=curSchool();
+    if(!schoolSupported()){ $('dmgMsg').innerHTML='<span style="color:#c0392b">'+(_sc1?('当前流派「'+escapeHtml(_sc1.name)+'」暂不支持计算'):'请先选择流派')+'</span>'; return; }
+    if(dmgOrder.length<2){ $('dmgMsg').textContent='序列不足 2 件，无需排序。'; return; }
+    const B={ atk:Number($('dmgAtk').value)||0, def:Number($('dmgDef').value)||0, hp:Number($('dmgHp').value)||0 };
+    const rounds=Math.min(30,Math.max(1,parseInt($('dmgRounds').value)||10));
+    $('dmgMsg').textContent='⏳ 正在搜索最优释放顺序…';
+    $('dmgBest').disabled=true;
+    setTimeout(()=>{
+      const base=dmgOrder.slice();
+      const skOf={}; base.forEach(o=>{ if(!(o.id in skOf)){ const t=library.find(x=>x.id===o.id); skOf[o.id]=t?resolveSkill(curSchool(),t):null; } });
+      const evalArr=arr=>dmgSimulate(arr.map(o=>({name:o.name,label:o.name,skill:skOf[o.id]})),B,rounds,'exp',curSchool().rule).total;
+      const t0=performance.now(), BUDGET=1600;
+      let gBest=base.slice(), gTot=evalArr(gBest);
+      const shuffle=a=>{ a=a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); const x=a[i]; a[i]=a[j]; a[j]=x; } return a; };
+      let restart=0;
+      while(performance.now()-t0<BUDGET){
+        let cur = restart===0 ? base.slice() : shuffle(base);
+        let cv=evalArr(cur); restart++;
+        for(let it=0; it<1200 && performance.now()-t0<BUDGET; it++){
+          const i=Math.floor(Math.random()*cur.length), j=Math.floor(Math.random()*cur.length);
+          if(i===j) continue;
+          const nb=cur.slice(); const x=nb[i]; nb[i]=nb[j]; nb[j]=x;
+          const v=evalArr(nb);
+          if(v>cv){ cv=v; cur=nb; }
+        }
+        if(cv>gTot){ gTot=cv; gBest=cur; }
+      }
+      const before=evalArr(base);
+      dmgOrder=gBest; renderDmgOrder();
+      $('dmgBest').disabled=false;
+      const gain=gTot-before;
+      $('dmgMsg').innerHTML='已找到最优顺序（试探 '+restart+' 轮）：期望总伤 '+dmgFmt(gTot)+
+        (gain>0.5? ' · 较原顺序 <span class="up">+'+dmgFmt(gain)+'（+'+((gTot/before-1)*100).toFixed(1)+'%）</span>' : ' · 与原顺序持平')+
+        '，点「计算伤害」查看明细。';
+    },30);
+  }
+
+  /* ---------- 结果渲染：每回合明细 + 归因占比 + 与基准对比 ---------- */
+  function renderDmgOut(cur, prev, isLocked){
+    const box=$('dmgOut'); if(!box) return;
+    const E=cur.exp, M=cur.max, R=cur.rounds;
+    const pe = prev? prev.exp : null;
+    const names=Object.keys(E.byName);
+    const kinds=new Set(cur.order).size;
+    let peak=E.per[0]||{round:0,total:0};
+    E.per.forEach(p=>{ if(p.total>peak.total) peak=p; });
+
+    /* --- 总览（放到计算按钮下方空白处） --- */
+    const ov=$('dmgOverview');
+    if(ov){
+      let o='';
+      o+='<div class="dmg-sec"><h3>总览'+(prev? ' <span class="cap" style="margin:0;font-weight:400">· 对比'+(isLocked?'锁定基准':'上一次计算')+'</span>':'')+'</h3><div class="dmg-cards">';
+      o+='<div class="st"><div class="k">期望总伤（'+R+' 回合）</div><div class="v">'+dmgFmt(E.total)+'</div><div class="d">'+(pe? (deltaSpan(E.total,pe.total)+' · '+deltaPct(E.total,pe.total)) : '首次计算，暂无对比')+'</div></div>';
+      o+='<div class="st"><div class="k">极限总伤（二次释放全触发）</div><div class="v">'+dmgFmt(M.total)+'</div><div class="d">'+(prev? (deltaSpan(M.total,prev.max.total)+' · '+deltaPct(M.total,prev.max.total)) : '—')+'</div></div>';
+      o+='<div class="st"><div class="k">平均每回合（期望）</div><div class="v">'+dmgFmt(E.total/R)+'</div><div class="d">峰值第 '+peak.round+' 回合：'+dmgFmt(peak.total)+'</div></div>';
+      o+='<div class="st"><div class="k">释放序列</div><div class="v">'+cur.order.length+' 件</div><div class="d">'+kinds+' 种法宝，其中 '+names.length+' 种产生输出</div></div>';
+      o+='</div></div>';
+      ov.innerHTML=o;
+    }
+
+    let h='';
+    /* --- 每回合明细 --- */
+    h+='<div class="dmg-sec"><h3>每回合伤害<span class="cap" style="margin:0 0 0 8px;font-weight:400">点击任意行展开该回合逐法宝明细</span></h3>'+
+       '<table class="dmg-table"><thead><tr><th>回合</th><th>常规伤害</th><th>二次释放(期望)</th><th>回合合计</th><th>累计</th><th>占全程</th></tr></thead><tbody>';
+    let cum=0;
+    E.per.forEach(p=>{
+      cum+=p.total;
+      h+='<tr class="rd" data-r="'+p.round+'"><td>▸ 第 '+p.round+' 回合</td><td>'+dmgFmt(p.normal)+'</td><td>'+dmgFmt(p.re)+'</td>'+
+         '<td><b>'+dmgFmt(p.total)+'</b></td><td>'+dmgFmt(cum)+'</td><td>'+(E.total? (p.total/E.total*100).toFixed(1):'0.0')+'%</td></tr>';
+      const rs=Object.keys(p.rows).map(n=>({n,v:p.rows[n]})).sort((a,b)=>(b.v.normal+b.v.re)-(a.v.normal+a.v.re));
+      let sub='';
+      if(rs.length===0) sub='<div class="cap" style="margin:2px 0">本回合无直接输出（仅叠加增益／护盾）。</div>';
+      rs.forEach(x=>{
+        const tt=x.v.normal+x.v.re, pc=p.total? tt/p.total*100:0;
+        sub+='<div class="share-row"><span class="lb">'+escapeHtml(x.n)+'</span><span class="bar"><i style="width:'+pc.toFixed(1)+'%"></i></span>'+
+             '<span class="pc">'+dmgFmt(tt)+' · '+pc.toFixed(1)+'%</span></div>';
+        const ins=Object.keys(x.v.inst);
+        if(ins.length>1) ins.forEach(lb=>{
+          const iv=x.v.inst[lb], it=iv.normal+iv.re, ip=p.total? it/p.total*100:0;
+          sub+='<div class="share-row" style="padding-left:18px;color:var(--muted)"><span class="lb">'+escapeHtml(lb)+'</span>'+
+               '<span class="bar"><i style="width:'+ip.toFixed(1)+'%;background:#c4b5fd"></i></span>'+
+               '<span class="pc">'+dmgFmt(it)+' · '+ip.toFixed(1)+'%</span></div>';
+        });
+      });
+      const _sc=curSchool(); const _g=_sc?_sc.rule.gains:null;
+      let stLine = _g? Object.keys(_g).map(k=>escapeHtml(_g[k].label||k)+' '+p.state[k]).join(' · ') : '';
+      stLine += (_g? ' · ' : '') + '累积护盾 '+dmgFmt(p.state.shield);
+      sub+='<div class="cap" style="margin:5px 0 0">回合末层数：'+stLine+'</div>';
+      h+='<tr class="sub" data-sub="'+p.round+'" style="display:none"><td colspan="6">'+sub+'</td></tr>';
+    });
+    h+='<tr class="sumrow"><td>合计</td><td>'+dmgFmt(E.per.reduce((a,p)=>a+p.normal,0))+'</td><td>'+dmgFmt(E.per.reduce((a,p)=>a+p.re,0))+
+       '</td><td>'+dmgFmt(E.total)+'</td><td>'+dmgFmt(E.total)+'</td><td>100.0%</td></tr>';
+    h+='</tbody></table></div>';
+
+    /* --- 全局占比 --- */
+    const arr=names.map(n=>({ n, normal:E.byName[n].normal, re:E.byName[n].re, v:E.byName[n].normal+E.byName[n].re })).sort((a,b)=>b.v-a.v);
+    h+='<div class="dmg-sec"><h3>全局伤害占比</h3>';
+    arr.forEach(x=>{ const pc=E.total? x.v/E.total*100:0;
+      h+='<div class="share-row"><span class="lb">'+escapeHtml(x.n)+'</span><span class="bar"><i style="width:'+pc.toFixed(1)+'%"></i></span>'+
+         '<span class="pc">'+dmgFmt(x.v)+' · '+pc.toFixed(1)+'%</span></div>'; });
+    h+='<table class="dmg-table" style="margin-top:10px"><thead><tr><th>法宝</th><th>常规</th><th>二次释放</th><th>合计</th><th>全局占比</th>'+
+       (pe? '<th>伤害变化</th><th>占比变化</th>':'')+'</tr></thead><tbody>';
+    arr.forEach(x=>{
+      const pc=E.total? x.v/E.total*100:0; let cmp='';
+      if(pe){
+        const po=pe.byName[x.n]; const pv=po? po.normal+po.re : 0;
+        const ppc=pe.total? pv/pe.total*100:0, dp=pc-ppc;
+        cmp='<td>'+deltaSpan(x.v,pv)+'</td><td>'+(Math.abs(dp)<0.05? '<span class="flat">±0.0pp</span>' :
+            '<span class="'+(dp>0?'up':'down')+'">'+(dp>0?'+':'')+dp.toFixed(1)+'pp</span>')+'</td>';
+      }
+      h+='<tr><td>'+escapeHtml(x.n)+'</td><td>'+dmgFmt(x.normal)+'</td><td>'+dmgFmt(x.re)+'</td><td><b>'+dmgFmt(x.v)+'</b></td><td>'+pc.toFixed(1)+'%</td>'+cmp+'</tr>';
+    });
+    if(pe) Object.keys(pe.byName).filter(n=>!E.byName[n]).forEach(n=>{
+      const pv=pe.byName[n].normal+pe.byName[n].re, ppc=pe.total? pv/pe.total*100:0;
+      h+='<tr><td>'+escapeHtml(n)+'</td><td colspan="3" style="text-align:left;color:var(--muted)">本次未参与</td><td>0.0%</td>'+
+         '<td>'+deltaSpan(0,pv)+'</td><td><span class="down">-'+ppc.toFixed(1)+'pp</span></td></tr>';
+    });
+    h+='</tbody></table>';
+    /* 展开到每一件 */
+    const insts=Object.keys(E.byInst).map(lb=>({ lb, name:E.byInst[lb].name, v:E.byInst[lb].normal+E.byInst[lb].re })).sort((a,b)=>b.v-a.v);
+    if(insts.length){
+      h+='<details style="margin-top:9px"><summary style="cursor:pointer;font-size:12.5px;color:var(--accent-d)">展开到每一件（同名法宝因释放位置不同，贡献也不同）</summary>'+
+         '<table class="dmg-table" style="margin-top:6px"><thead><tr><th>实例</th><th>合计伤害</th><th>全局占比</th>'+(pe?'<th>对比变化</th>':'')+'</tr></thead><tbody>';
+      insts.forEach(x=>{
+        const pc=E.total? x.v/E.total*100:0; let cmp='';
+        if(pe){ const po=pe.byInst[x.lb]; const pv=po? po.normal+po.re:0; cmp='<td>'+deltaSpan(x.v,pv)+'</td>'; }
+        h+='<tr><td>'+escapeHtml(x.lb)+'</td><td>'+dmgFmt(x.v)+'</td><td>'+pc.toFixed(1)+'%</td>'+cmp+'</tr>';
+      });
+      h+='</tbody></table></details>';
+    }
+    h+='</div>';
+
+    /* --- 顺序对比 --- */
+    if(prev){
+      const same = prev.order.length===cur.order.length && prev.order.every((n,i)=>n===cur.order[i]);
+      h+='<div class="dmg-sec"><h3>顺序对比</h3>';
+      h+='<div class="cap" style="margin:2px 0"><b>基准</b>（'+(isLocked?'锁定基准':'上一次')+'，'+prev.rounds+' 回合 · 期望 '+dmgFmt(prev.exp.total)+'）：'+
+         prev.order.map((n,i)=>(i+1)+'.'+n).join(' → ')+'</div>';
+      h+='<div class="cap" style="margin:2px 0"><b>本次</b>（'+R+' 回合 · 期望 '+dmgFmt(E.total)+'）：'+
+         cur.order.map((n,i)=>(i+1)+'.'+n).join(' → ')+'</div>';
+      h+='<div class="cap" style="margin:6px 0 0">'+(same? '两次释放顺序完全一致。' :
+         '顺序已变更 → 期望总伤 '+deltaSpan(E.total,pe.total)+'（'+deltaPct(E.total,pe.total)+'）， 极限总伤 '+deltaSpan(M.total,prev.max.total)+'。')+'</div>';
+      h+='</div>';
+    }
+
+    /* --- 无输出法宝提示 --- */
+    const noOut=[...new Set(cur.order)].filter(n=>!E.byName[n]);
+    if(noOut.length) h+='<div class="dmg-warn">以下法宝在本次计算中未产生伤害：<b>'+noOut.map(escapeHtml).join('、')+
+      '</b>。可能是「不参与输出计算」（如九宫牌／灵兽肉），或技能系数尚未在「详情」里录入。它们仍会正常提供护盾与增益。</div>';
+
+    box.innerHTML=h;
+    box.querySelectorAll('tr.rd').forEach(tr=>tr.onclick=()=>{
+      const r=tr.dataset.r; const s=box.querySelector('tr.sub[data-sub="'+r+'"]');
+      if(!s) return;
+      const open = s.style.display!=='none';
+      s.style.display = open? 'none':'table-row';
+      tr.firstElementChild.textContent = (open?'▸':'▾')+' 第 '+r+' 回合';
+    });
+  }
+
+  /* ---------- 一键生成 ---------- */
+  $('solve').onclick=()=>{
+    const enabledCount=library.filter(t=>sel[t.id]&&sel[t.id].include).length;
+    const chosen=library.filter(t=>{ const s=sel[t.id]; return s&&s.include&&(s.count||0)>0; });
+    if(chosen.length===0){ $('statusBox').textContent= enabledCount>0 ? '⚠️ 已启用 '+enabledCount+' 件法宝，但数量均为 0；请至少为一件填写数量（>0）后再生成。' : '⚠️ 请先在「组别管理」勾选组别以启用法宝，并填写数量（>0）。'; return; }
+    const pieces=chosen.map(t=>({ name:t.id, cells:t.cells, count:sel[t.id].count, priority:sel[t.id].priority }));
+    const backpack={ rows:bagRows(), cols:bagCols(), blocked:[...bagBlocked] };
+    $('statusBox').textContent='⏳ 生成中…（背包 '+backpack.rows+'×'+backpack.cols+'，选中法宝 '+chosen.length+' 种）';
+    $('solve').disabled=true;
+    setTimeout(()=>{
+      const t0=performance.now();
+      const plans=PackCore.generatePlans(backpack,pieces,{runsPerStrategy:500,timeLimitMs:1500});
+      const ms=(performance.now()-t0).toFixed(0);
+      $('solve').disabled=false;
+      renderPlans(plans,backpack,ms);
+    },30);
+  };
+
+  /* ---------- 复制当前输入配置 ---------- */
+  $('exportCfg').onclick=()=>{
+    const cfg={ backpack:{ rows:bagRows(), cols:bagCols(), blocked:[...bagBlocked] }, treasures: library.map(t=>{ const s=sel[t.id]||{}; return { id:t.id, name:t.name, cells:t.cells, count:s.count||0, priority:!!s.priority, include:s.include!==false }; }) };
+    const json=JSON.stringify(cfg,null,2);
+    const box=$('exportBox'); box.style.display='block';
+    box.innerHTML='<div class="hint">已生成当前输入配置，已尝试复制到剪贴板；如未复制，请手动全选下方文本：</div><textarea id="exportJson" readonly style="width:100%;height:130px;margin-top:6px;font-family:monospace;font-size:12px;box-sizing:border-box"></textarea>';
+    const ta=$('exportJson'); ta.value=json; ta.focus(); ta.select();
+    try{ if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(json); }catch(e){}
+    $('statusBox').textContent='📤 当前输入配置已生成（见上方文本框，可直接复制粘贴给开发同学）。';
+  };
+
+  /* ===================== 计算器：整体属性（生命/防御/攻击 + 邻接百分比加成，按属性分别结算） =====================
+       对每个法宝 i，最终属性按三项分别结算：
+         最终.attr = 基础.attr × 自身加成倍率 × 他人加成倍率
+         自身加成倍率 = 1 + 加成率% × 相邻不同法宝数   （仅当加成类型=自身受加成 且 加成属性=attr）
+         他人加成倍率 = 1 + Σ(相邻“给他人加成”法宝 j 且 加成属性=attr 的 加成率%)
+       全部无加成 → 倍率均为 1 → 三项直接求和。
+       整体属性 = 所有法宝最终属性的分项求和。 */
+  function computeAttributes(plan,libMap,R,C){
+    const sameGroup=(a,b)=> !!(a&&b && a.group!=null && b.group!=null && a.group===b.group);
+    const items = plan.placements.map(p=>({ name:p.name, cells:p.cells, m: libMap[p.name] || {hp:0,def:0,atk:0,bonusRate:0,bonusAttr:'hp',bonusType:'none'} }));
+    const N = items.length;
+    const occ = new Array(R*C).fill(-1);
+    items.forEach((it,ii)=> it.cells.forEach(([r,c])=>{ occ[r*C+c]=ii; }));
+    const adj = items.map(()=> new Set());   // 每个法宝相邻的不同法宝（实例）集合
+    for(let ii=0; ii<N; ii++){
+      for(const [r,c] of items[ii].cells){
+        for(const [nr,nc] of [[r-1,c],[r+1,c],[r,c-1],[r,c+1]]){
+          if(nr<0||nr>=R||nc<0||nc>=C) continue;
+          const j=occ[nr*C+nc]; if(j>=0&&j!==ii) adj[ii].add(j);
+        }
+      }
+    }
+    const finalAttrs = items.map(()=>({hp:0,def:0,atk:0}));
+    const totals = {hp:0,def:0,atk:0};
+    for(let ii=0; ii<N; ii++){
+      const m = items[ii].m;
+      const b = { hp:Number(m.hp)||0, def:Number(m.def)||0, atk:Number(m.atk)||0 };
+      // 自身受加成：仅统计「同组别」的相邻法宝
+      const selfMult = {hp:1,def:1,atk:1};
+      if(m.bonusType==='self' && m.bonusAttr){
+        const rate=(Number(m.bonusRate)||0)/100;
+        let k=0; for(const j of adj[ii]){ if(sameGroup(m, items[j].m)) k++; }
+        selfMult[m.bonusAttr] = 1 + rate*k;
+      }
+      // 他人加成：仅来自「同组别」且类型为“给他人加成”的相邻法宝
+      const buffMult = {hp:1,def:1,atk:1};
+      for(const j of adj[ii]){
+        const mj = items[j].m;
+        if(mj.bonusType==='buff' && mj.bonusAttr && sameGroup(mj, m)){
+          const rate=(Number(mj.bonusRate)||0)/100;
+          buffMult[mj.bonusAttr] += rate;
+        }
+      }
+      finalAttrs[ii].hp = b.hp*selfMult.hp*buffMult.hp;
+      finalAttrs[ii].def = b.def*selfMult.def*buffMult.def;
+      finalAttrs[ii].atk = b.atk*selfMult.atk*buffMult.atk;
+      totals.hp += finalAttrs[ii].hp;
+      totals.def += finalAttrs[ii].def;
+      totals.atk += finalAttrs[ii].atk;
+    }
+    return { per: items.map((it,ii)=>({id:it.name, hp:finalAttrs[ii].hp, def:finalAttrs[ii].def, atk:finalAttrs[ii].atk})), totals };
+  }
+
+  /* ===================== 配置保存 / 读取 ===================== */
+  function serializeConfig(){ return { library: library.map(t=>{ const s=sel[t.id]||{}; return {id:t.id,name:t.name,cells:t.cells,base:{hp:t.base&&t.base.hp||0,def:t.base&&t.base.def||0,atk:t.base&&t.base.atk||0},bonusRate:t.bonusRate||0,bonusType:t.bonusType||'none',bonusAttr:t.bonusAttr||'hp',group:t.group||null,count:s.count||0,priority:!!s.priority,include:s.include!==false}; }), backpack:{rows:bagRows(),cols:bagCols(),blocked:[...bagBlocked]} }; }
+  function saveConfig(){
+    const cfg=serializeConfig();
+    try{ localStorage.setItem('treasurePackConfig',JSON.stringify(cfg)); }catch(e){}
+    const blob=new Blob([JSON.stringify(cfg,null,2)],{type:'application/json'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='法宝背包配置.json'; a.click(); URL.revokeObjectURL(a.href);
+    $('statusBox').textContent='💾 配置已保存到浏览器(localStorage)并下载 JSON 文件。';
+  }
+  function loadConfig(cfg){
+    if(!cfg||!Array.isArray(cfg.library)) return false;
+    library.length=0; Object.keys(sel).forEach(k=>delete sel[k]); tid=0;
+    cfg.library.forEach(t=>{ tid++; const nm=String(t.name||t.id||('法宝'+tid)); const id=nm; const base=(typeof t.base==='object'&&t.base)?{hp:Number(t.base.hp)||0,def:Number(t.base.def)||0,atk:Number(t.base.atk)||0}:{hp:Number(t.base)||0,def:0,atk:0}; library.push({id,name:nm,cells:PackCore.normalizeShape(t.cells||[[0,0]]),color:colorOf(library.length),base,bonusRate:Number(t.bonusRate)||0,bonusType:t.bonusType||'none',bonusAttr:t.bonusAttr||'hp',group:t.group||null,count:Math.max(0,t.count||0)}); sel[id]={include:t.include!==false,count:Math.max(0,t.count||0),priority:!!t.priority}; });
+    if(cfg.backpack){ $('rows').value=cfg.backpack.rows; $('cols').value=cfg.backpack.cols; bagBlocked=new Set((cfg.backpack.blocked||[]).filter(i=>i>=0)); }
+    $('preset').value='custom'; renderInventory(); renderBagGrid(); saveLibrary(); return true;
+  }
+  function exportResult(){
+    if(!lastPlans||!lastPlans.length){ alert('请先生成方案'); return; }
+    const data={ backpack:lastBackpack, plans:lastPlans };
+    const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='法宝背包方案.json'; a.click(); URL.revokeObjectURL(a.href);
+  }
+  let lastPlans=null,lastBackpack=null,lastMs=0;
+  $('saveCfg').onclick=saveConfig;
+  $('loadCfg').onclick=()=>$('fileInput').click();
+  $('fileInput').onchange=e=>{ const f=e.target.files[0]; if(!f) return; const rd=new FileReader(); rd.onload=()=>{ try{ if(loadConfig(JSON.parse(rd.result))) $('statusBox').textContent='📂 配置已载入。'; else $('statusBox').textContent='⚠️ 配置文件格式不正确。'; }catch(err){ $('statusBox').textContent='⚠️ JSON 解析失败：'+err.message; } }; rd.readAsText(f); e.target.value=''; };
+  $('exportResult').onclick=exportResult;
+  $('sortMode').onchange=()=>{ if(lastPlans) renderPlans(lastPlans,lastBackpack,lastMs); };
+
+  /* ===================== 渲染方案（含计算器结果） ===================== */
+  /* ---------- 属性格式化 / 权重读取 / 加权评分 ---------- */
+  function fmt(n){ return Math.round(n).toLocaleString('en-US'); }
+  function readWeights(){
+    let hp=Number($('wHp').value)||0, atk=Number($('wAtk').value)||0, def=Number($('wDef').value)||0;
+    const rawSum=hp+atk+def; const msg=$('wMsg');
+    if(rawSum<=0){ hp=34; atk=33; def=33; }
+    const sum=hp+atk+def||1;
+    const w={hp:hp/sum*100, atk:atk/sum*100, def:def/sum*100};
+    if(msg){ msg.textContent = (Math.round(rawSum)===100)?'权重合计 100 ✓（按此加权）':'权重合计 '+Math.round(rawSum)+'，已自动按比例归一化'; }
+    return w;
+  }
+  function weightedScore(totals,w){ return totals.hp*(w.hp/100)+totals.def*(w.def/100)+totals.atk*(w.atk/100); }
+
+  function renderPlans(plans,backpack,ms){
+    lastPlans=plans; lastBackpack=backpack; lastMs=ms;
+    $('exportResult').disabled = !(plans&&plans.length);
+    const R=backpack.rows,C=backpack.cols;
+    const colorById={}; const idName={}; const libMap={};
+    library.forEach(t=>{ colorById[t.id]=t.color; idName[t.id]=t.name; libMap[t.id]={ hp:t.base&&t.base.hp||0, def:t.base&&t.base.def||0, atk:t.base&&t.base.atk||0, bonusRate:t.bonusRate||0, bonusType:t.bonusType||'none', bonusAttr:t.bonusAttr||'hp', group:t.group||null }; });
+    const weights=readWeights();
+    plans.forEach(p=>{ const a=computeAttributes(p,libMap,R,C); p.totals=a.totals; p.perAttrs=a.per; p.weighted=weightedScore(a.totals,weights); });
+    const mode=$('sortMode')?$('sortMode').value:'default';
+    const sorted=plans.slice();
+    if(mode==='attr') sorted.sort((a,b)=>b.weighted-a.weighted);
+    else if(mode==='score') sorted.sort((a,b)=>b.score-a.score||b.fill-a.fill);
+    else if(mode==='fill') sorted.sort((a,b)=>b.fill-a.fill||b.score-a.score);
+    const usedOf={}; library.forEach(t=>usedOf[t.id]=0); sorted.forEach(p=>p.placements.forEach(pl=>{ if(usedOf[pl.name]!=null) usedOf[pl.name]++; }));
+    const hasPrio=library.some(t=>sel[t.id]&&sel[t.id].priority);
+    const needN=hasPrio?5:10;
+    const top0=sorted.length?sorted[0]:null;
+    const bestFill=top0?top0.bestFill:0, cap=top0?top0.capacity:0;
+    const scoreNote=(hasPrio&&top0)?' · 最高相邻法宝数 '+top0.score:'';
+    let attrNote='';
+    if(top0){ if(mode==='attr') attrNote=' · 最高属性评分 '+Math.round(top0.weighted); else attrNote=' · 顶配 生命'+fmt(top0.totals.hp)+'/防御'+fmt(top0.totals.def)+'/攻击'+fmt(top0.totals.atk); }
+    $('statusBox').textContent='✅ 基础填充 '+(top0?top0.runs:'-')+' 次 · 候选池 '+(top0?top0.poolSize:'-')+' 套 · 最高填充 '+bestFill+'/'+cap+' 格'+scoreNote+attrNote+' · 耗时 '+ms+'ms'+(sorted.length<needN?' · 不同布局不足 '+needN+' 套':'');
+    // 统计块
+    const stat=(k,v)=>'<div class="stat"><div class="k">'+k+'</div><div class="v">'+v+'</div></div>';
+    $('statsBlock').innerHTML =
+      stat('生命值', top0?fmt(top0.totals.hp):'-') +
+      stat('防御力', top0?fmt(top0.totals.def):'-') +
+      stat('攻击力', top0?fmt(top0.totals.atk):'-') +
+      stat('属性评分', (mode==='attr'&&top0)?Math.round(top0.weighted):'-') +
+      stat('相邻法宝数', (hasPrio&&top0)?top0.score:'-') +
+      stat('已用格子', top0?top0.filled+'/'+top0.capacity:'-') +
+      stat('已放物品', top0?top0.placements.length:'-') +
+      stat('搜索耗时', ms+'ms') +
+      stat('候选池', top0?top0.poolSize:'-');
+    const wrap=$('plans'); wrap.innerHTML='';
+    if(sorted.length===0){ wrap.innerHTML='<div class="empty-note">未找到可行方案，请减少法宝数量或扩大背包。</div>'; renderPlanDetail(null); return; }
+    function selectPlan(i){
+      const plan=sorted[i];
+      wrap.querySelectorAll('.plan-card').forEach(c=>c.classList.remove('selected'));
+      const card=wrap.querySelector('.plan-card[data-idx="'+i+'"]'); if(card) card.classList.add('selected');
+      renderPlanDetail(plan,R,C,idName,usedOf,hasPrio);
+    }
+    sorted.forEach((plan,i)=>{
+      const card=document.createElement('div'); card.className='plan-card';
+      const rate=(plan.capacity?plan.filled/plan.capacity*100:0);
+      const ratePill='<span class="pill '+(rate>=99?'ok':'warn')+'">填充率 '+rate.toFixed(1)+'%</span>';
+      const fullPill=plan.filled===plan.capacity?'<span class="pill ok">满填充</span>':'<span class="pill warn">填充 '+plan.filled+'/'+plan.capacity+'</span>';
+      const scorePill=(hasPrio)?'<span class="pill" style="background:#3b82f6;color:#fff">相邻法宝 '+plan.score+'</span>':'';
+      const wPill=(mode==='attr')?'<span class="pill" style="background:#7c3aed;color:#fff">属性评分 '+Math.round(plan.weighted)+'</span>':'';
+      const t=plan.totals||{hp:0,def:0,atk:0};
+      const attrLine='<div class="attr-line">生命 '+fmt(t.hp)+' · 防御 '+fmt(t.def)+' · 攻击 '+fmt(t.atk)+'</div>';
+      const colorAt={}; plan.placements.forEach(p=>p.cells.forEach(([r,c])=>{ colorAt[r*C+c]=colorById[p.name]; }));
+      let gridHtml='<div class="grid" style="grid-template-columns:repeat('+C+',24px);gap:3px">';
+      for(let r=0;r<R;r++) for(let c=0;c<C;c++){ const idx=r*C+c; if(bagBlocked.has(idx)) gridHtml+='<div class="cell blocked"></div>'; else if(colorAt[idx]!=null) gridHtml+='<div class="cell" style="background:'+colorAt[idx]+';border-color:rgba(0,0,0,.18)"></div>'; else gridHtml+='<div class="cell"></div>'; }
+      gridHtml+='</div>';
+      let legHtml='<div class="legend">'; library.forEach(t2=>{ const u=usedOf[t2.id]; if(u>0){ const left=sel[t2.id].count-u; legHtml+='<div class="item"><span class="sw" style="background:'+t2.color+'"></span>'+escapeHtml(t2.name)+' <b>'+u+'/'+(sel[t2.id].count)+'</b>'+(left>0?' <span style="color:var(--warn)">(剩'+left+')</span>':'')+(sel[t2.id].priority?' <span style="color:var(--accent2)">★优先</span>':'')+'</div>'; } });
+      const leftTre=library.filter(t2=>sel[t2.id]&&sel[t2.id].include&&(sel[t2.id].count-(usedOf[t2.id]||0))>0);
+      if(leftTre.length){ legHtml+='<div class="item" style="color:var(--warn)">未放: '+leftTre.map(t2=>escapeHtml(t2.name)+'×'+(sel[t2.id].count-usedOf[t2.id])).join('、')+'</div>'; }
+      legHtml+='</div>';
+      const text=buildPlanText(plan,R,C,i+1,idName);
+      card.innerHTML='<h3>方案 '+(i+1)+' '+ratePill+' '+fullPill+' '+scorePill+' '+wPill+'</h3>'+gridHtml+legHtml+attrLine;
+      const pre=document.createElement('pre'); pre.className='plan-text'; pre.textContent=text; pre.style.display='none';
+      const btn=document.createElement('button'); btn.className='ghost'; btn.textContent='查看/复制文本';
+      btn.onclick=(e)=>{ e.stopPropagation(); const show=pre.style.display!=='block'; pre.style.display=show?'block':'none'; if(show&&navigator.clipboard) navigator.clipboard.writeText(text); };
+      const bar=document.createElement('div'); bar.className='planbar'; bar.appendChild(btn);
+      card.appendChild(bar); card.appendChild(pre);
+      card.dataset.idx=i; card.onclick=()=>selectPlan(i);
+      wrap.appendChild(card);
+    });
+    if(sorted.length) selectPlan(0);
+  }
+  /* ---------- 右侧详情面板：点击某方案卡后实时渲染其摆放与属性明细 ---------- */
+  function renderPlanDetail(plan,R,C,idName,usedOf,hasPrio){
+    const box=$('planDetail');
+    if(!plan){ box.innerHTML='<div class="pd-empty">点击左侧任意方案，此处实时显示该方案的摆放与属性详情。</div>'; return; }
+    const colorById={}; library.forEach(t=>colorById[t.id]=t.color);
+    const colorAt={}; plan.placements.forEach(p=>p.cells.forEach(([r,c])=>{ colorAt[r*C+c]=colorById[p.name]; }));
+    let gridHtml='<div class="grid" style="grid-template-columns:repeat('+C+',20px);gap:3px">';
+    for(let r=0;r<R;r++) for(let c=0;c<C;c++){ const idx=r*C+c; if(bagBlocked.has(idx)) gridHtml+='<div class="cell blocked"></div>'; else if(colorAt[idx]!=null) gridHtml+='<div class="cell" style="background:'+colorAt[idx]+';border-color:rgba(0,0,0,.18)"></div>'; else gridHtml+='<div class="cell"></div>'; }
+    gridHtml+='</div>';
+    let legHtml='<div class="legend" style="margin-top:6px">';
+    library.forEach(t=>{ const u=usedOf[t.id]; if(u>0){ const left=sel[t.id].count-u; legHtml+='<div class="item"><span class="sw" style="background:'+t.color+'"></span>'+escapeHtml(t.name)+' <b>'+u+'/'+(sel[t.id].count)+'</b>'+(left>0?' <span style="color:var(--warn)">(剩'+left+')</span>':'')+(sel[t.id].priority?' <span style="color:var(--accent2)">★优先</span>':'')+'</div>'; } });
+    const leftTre=library.filter(t=>sel[t.id]&&sel[t.id].include&&(sel[t.id].count-(usedOf[t.id]||0))>0);
+    if(leftTre.length){ legHtml+='<div class="item" style="color:var(--warn)">未放: '+leftTre.map(t=>escapeHtml(t.name)+'×'+(sel[t.id].count-usedOf[t.id])).join('、')+'</div>'; }
+    legHtml+='</div>';
+    // 分项属性明细（按法宝聚合）
+    const perMap={}; const infoMap={};
+    (plan.perAttrs||[]).forEach(pa=>{ if(!perMap[pa.id]) perMap[pa.id]={hp:0,def:0,atk:0}; perMap[pa.id].hp+=pa.hp; perMap[pa.id].def+=pa.def; perMap[pa.id].atk+=pa.atk; });
+    library.forEach(t=>{ infoMap[t.id]={bonusType:t.bonusType||'none',bonusAttr:t.bonusAttr||'hp',bonusRate:t.bonusRate||0}; });
+    let tbl='<table class="pd-table"><thead><tr><th>法宝</th><th>数量</th><th>生命</th><th>防御</th><th>攻击</th><th>加成</th></tr></thead><tbody>';
+    Object.keys(perMap).forEach(id=>{ const p=perMap[id]; const info=infoMap[id]||{}; const bt=info.bonusType; let bonus='—';
+      if(bt==='self') bonus='自身+'+(info.bonusRate||0)+'%'+(info.bonusAttr==='def'?'防御':info.bonusAttr==='atk'?'攻击':'生命')+'(同组)';
+      else if(bt==='buff') bonus='给他+'+(info.bonusRate||0)+'%'+(info.bonusAttr==='def'?'防御':info.bonusAttr==='atk'?'攻击':'生命')+'(同组)';
+      const cnt=usedOf[id]||0; tbl+='<tr><td>'+escapeHtml(idName[id]||id)+'</td><td>'+cnt+'</td><td>'+fmt(p.hp)+'</td><td>'+fmt(p.def)+'</td><td>'+fmt(p.atk)+'</td><td>'+bonus+'</td></tr>'; });
+    const t=plan.totals||{hp:0,def:0,atk:0};
+    tbl+='<tr class="pd-total"><td>合计</td><td></td><td>'+fmt(t.hp)+'</td><td>'+fmt(t.def)+'</td><td>'+fmt(t.atk)+'</td><td></td></tr>';
+    tbl+='</tbody></table>';
+    const text=buildPlanText(plan,R,C,1,idName);
+    box.innerHTML='<h4>方案详情 · 生命 '+fmt(t.hp)+' / 防御 '+fmt(t.def)+' / 攻击 '+fmt(t.atk)+(hasPrio?' · 相邻法宝 '+plan.score:'')+'</h4>'+gridHtml+legHtml+tbl;
+    const btn=document.createElement('button'); btn.className='ghost pd-copy'; btn.textContent='复制方案文本';
+    btn.onclick=(e)=>{ e.stopPropagation(); if(navigator.clipboard) navigator.clipboard.writeText(text); };
+    box.appendChild(btn);
+  }
+
+  function buildPlanText(plan,R,C,no,idName){
+    let txt='【法宝背包填充方案 '+no+'】\n';
+    txt+='背包 '+R+'×'+C+'，容量 '+plan.capacity+' 格（障碍 '+plan.blocked+'）\n';
+    const rate=plan.capacity?plan.filled/plan.capacity*100:0;
+    txt+='已填充 '+plan.filled+' 格，填充率 '+rate.toFixed(1)+'%，共放置 '+plan.placements.length+' 个法宝\n';
+    txt+='坐标以(行,列)表示，均从 1 开始；按锚点(左上角)排序：\n';
+    txt+='————————————————————\n';
+    const sorted=plan.placements.slice().sort((a,b)=>a.anchor[0]-b.anchor[0]||a.anchor[1]-b.anchor[1]);
+    sorted.forEach((p,i)=>{ const coords=p.cells.map(([r,c])=>'('+(r+1)+','+(c+1)+')').join(' '); txt+=(i+1)+'. '+(idName[p.name]||p.name)+' @锚点('+(p.anchor[0]+1)+','+(p.anchor[1]+1)+') 占 '+coords+'\n'; });
+    const totals=plan.totals||{hp:0,def:0,atk:0};
+    txt+='————————————————————\n';
+    txt+='属性合计（含邻接加成）：生命 '+fmt(totals.hp)+' · 防御 '+fmt(totals.def)+' · 攻击 '+fmt(totals.atk)+'\n';
+    const perMap={}; (plan.perAttrs||[]).forEach(pa=>{ perMap[pa.id]=perMap[pa.id]||{hp:0,def:0,atk:0}; perMap[pa.id].hp+=pa.hp; perMap[pa.id].def+=pa.def; perMap[pa.id].atk+=pa.atk; });
+    Object.keys(perMap).forEach(id=>{ txt+='  '+(idName[id]||id)+'：生命 '+fmt(perMap[id].hp)+' · 防御 '+fmt(perMap[id].def)+' · 攻击 '+fmt(perMap[id].atk)+'\n'; });
+    if(plan.weighted!=null) txt+='属性评分（加权）：'+Math.round(plan.weighted)+'\n';
+    return txt;
+  }
+
+  /* ---------- 初始化 ---------- */
+  const libRestored = loadLibrary();
+  renderQuickShapes(); renderDraw(); renderInventory(); renderBagGrid(); renderGroups();
+  $('clearLib').onclick=()=>{ if(library.length===0){ alert('宝鉴库已为空'); return; } if(confirm('确认清空本地宝鉴库？所有已保存的法宝（名称/形状/属性）将被删除且不可恢复。')){ library.length=0; Object.keys(sel).forEach(k=>delete sel[k]); tid=0; try{ localStorage.removeItem(LIB_KEY); localStorage.removeItem(GRP_KEY); localStorage.removeItem('treasurePackBase_v1'); }catch(e){} renderInventory(); renderGroups(); $('statusBox').textContent='🗑 本地宝鉴库已清空。'; } };
+  $('importBase').onclick=()=>{ const n=importBaseLibrary(); $('statusBox').textContent='📥 已导入/合并基础法宝库，本次新增 '+n+' 件（共 '+library.length+' 件，7 组均默认未启用；在「组别管理」勾选需要的组别即可启用法宝，数量默认 0）。'; };
+  $('importFile').onclick=()=>$('fileImport').click();
+  $('fileImport').onchange=e=>{ const f=e.target.files[0]; if(f) importTreasureFile(f); e.target.value=''; };
+  $('saveHistory').onclick=captureHistory;
+  $('clearHistory').onclick=()=>{ if(confirm('确认清空全部历史求解记录？')){ try{ localStorage.removeItem(HIST_KEY); }catch(e){} renderHistory(); $('statusBox').textContent='🗑 历史求解记录已清空。'; } };
+  renderHistory();
+  // 首次打开（无本机数据 或 尚未导入过基础库）自动导入工作簿中的 7 组基础法宝库
+  const baseFlag = (localStorage.getItem('treasurePackBase_v1')==='1');
+  if(!libRestored || !baseFlag){
+    const n = importBaseLibrary();
+    try{ localStorage.setItem('treasurePackBase_v1','1'); }catch(e){}
+    $('statusBox').textContent='📚 已导入基础法宝库（'+library.length+' 件，金/木/水/火/土/雷/体 7 组）。在「组别管理」勾选所需组别即可启用对应法宝（数量默认 0，填写数量后点「一键生成」）。';
+  } else if(libRestored){
+    $('statusBox').textContent='📚 已从本地宝鉴库自动恢复 '+library.length+' 件法宝（勾选组别并填写数量后即可点「一键生成」）。';
+  }
+  /* ---------- 伤害计算模块初始化 ---------- */
+  renderDmgGroupSel(); renderDmgSchoolArea();
+  $('dmgSchool').onchange=()=>{
+    dmgSchool=$('dmgSchool').value; dmgLast=null; dmgBase=null;
+    renderDmgSchoolArea(); loadDmgOrder();
+  };
+  $('dmgSchoolEdit').onclick=startEditSchoolName;
+  $('dmgGroup').onchange=()=>{ dmgLast=null; dmgBase=null; renderDmgSchoolArea(); loadDmgOrder(); };
+  $('dmgLoad').onclick=()=>loadDmgOrder();
+  $('dmgBest').onclick=bestDmgOrder;
+  $('dmgRun').onclick=runDmg;
+  $('dmgLock').onclick=()=>{
+    if(!dmgLast){ $('dmgMsg').textContent='请先计算一次，再锁定为基准。'; return; }
+    dmgBase=dmgLast;
+    $('dmgMsg').innerHTML='📌 已锁定当前结果为对比基准（期望总伤 '+dmgFmt(dmgBase.exp.total)+'），之后每次计算都与它比较。';
+  };
+  $('dmgClearBase').onclick=()=>{ dmgBase=null; $('dmgMsg').textContent='已清除锁定基准，之后每次计算与「上一次」比较。'; };
+  /* 导入流派公式 */
+  $('dmgImportSchool').onclick=()=>{
+    const ta=$('dmgSchoolJson'); const txt=ta.value.trim();
+    const msg=$('dmgImportMsg');
+    if(!txt){ msg.innerHTML='<span style="color:#c0392b">请先粘贴或选择 JSON</span>'; return; }
+    let obj; try{ obj=JSON.parse(txt); }catch(e){ msg.innerHTML='<span style="color:#c0392b">JSON 解析失败：'+escapeHtml(e.message)+'</span>'; return; }
+    try{
+      const sid=importSchoolDef(obj);
+      const grp=DMG_SCHOOLS[sid].group;
+      $('dmgGroup').value=grp;
+      dmgSchool=sid;
+      renderDmgSchoolArea();
+      $('dmgSchool').value=sid;
+      msg.innerHTML='<span style="color:#1a7f37">已导入/更新流派「'+escapeHtml(DMG_SCHOOLS[sid].name)+'」（'+escapeHtml(grp)+'组）并自动选中，点「从宝鉴读取」即可计算。</span>';
+      loadDmgOrder();
+    }catch(e){ msg.innerHTML='<span style="color:#c0392b">导入失败：'+escapeHtml(e.message)+'</span>'; }
+  };
+  $('dmgSchoolFileBtn').onclick=()=>$('dmgSchoolFile').click();
+  $('dmgSchoolFile').onchange=e=>{
+    const f=e.target.files[0]; if(!f) return;
+    const rd=new FileReader();
+    rd.onload=()=>{ try{ const obj=JSON.parse(rd.result); $('dmgSchoolJson').value=JSON.stringify(obj,null,2); $('dmgImportSchool').click(); }catch(err){ $('dmgImportMsg').innerHTML='<span style="color:#c0392b">文件解析失败：'+escapeHtml(err.message)+'</span>'; } };
+    rd.readAsText(f); e.target.value='';
+  };
+  /* 从 GitHub 同步流派清单：schools.json = {"schools":[{name,group,desc,rule,skills?}]} 或数组 */
+  function syncSchoolsFromGithub(){
+    const url=$('dmgSyncUrl').value.trim();
+    const msg=$('dmgSyncMsg');
+    if(!url){ msg.innerHTML='<span style="color:#c0392b">请先粘贴 GitHub 上的 schools.json raw 链接</span>'; return; }
+    msg.innerHTML='<span style="color:#666">正在从 GitHub 拉取…</span>';
+    fetch(url,{cache:'no-store'}).then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+      .then(data=>{
+        const list = Array.isArray(data) ? data : (data && Array.isArray(data.schools) ? data.schools : null);
+        if(!list) throw new Error('清单格式应为 {"schools":[...]} 或数组');
+        let n=0; list.forEach(s=>{ if(s && s.name && s.rule){ importSchoolDef(s); n++; } });
+        try{ localStorage.setItem('dmgSchoolSyncUrl', url); }catch(e){}
+        renderDmgSchoolSel(); renderDmgSchoolArea();
+        msg.innerHTML='<span style="color:#1a7f37">已同步 '+n+' 个流派到本机（同组同名已覆盖更新）。</span>';
+      })
+      .catch(e=>{ msg.innerHTML='<span style="color:#c0392b">同步失败：'+escapeHtml(e.message)+'（请确认链接为 raw.githubusercontent.com 且文件可公开访问）</span>'; });
+  }
+  $('dmgSyncBtn').onclick=syncSchoolsFromGithub;
+  try{ const u=localStorage.getItem('dmgSchoolSyncUrl'); if(u) $('dmgSyncUrl').value=u; }catch(e){}
+  /* 上传全部用户流派到 GitHub Gist（self-service：填 Token 后点一次即推送，其他电脑粘贴 raw 链接同步） */
+  function uploadSchoolsToGithub(){
+    const token=$('dmgGhToken').value.trim();
+    const gistId=$('dmgGhGist').value.trim();
+    const msg=$('dmgUploadMsg');
+    if(!token){ msg.innerHTML='<span style="color:#c0392b">请先填写 GitHub Token</span>'; return; }
+    msg.innerHTML='<span style="color:#666">正在上传…</span>';
+    const arr=Object.values(DMG_SCHOOLS).filter(s=>!s.builtin).map(s=>({ id:s.id, name:s.name, group:s.group||'体', rule:s.rule, desc:s.desc||'', skills:s.skills||null }));
+    const content=JSON.stringify({ schools: arr }, null, 2);
+    const headers={ 'Content-Type':'application/json; charset=utf-8', 'Authorization':'token '+token, 'Accept':'application/vnd.github+json' };
+    const body=JSON.stringify({ files:{ 'schools.json':{ content } }, public:false });
+    const url=gistId? ('https://api.github.com/gists/'+encodeURIComponent(gistId)) : 'https://api.github.com/gists';
+    fetch(url, { method:gistId?'PATCH':'POST', headers, body })
+      .then(r=>{ if(!r.ok) return r.text().then(t=>Promise.reject(new Error('HTTP '+r.status+' '+(t||'').slice(0,160)))); return r.json(); })
+      .then(data=>{
+        const newId=data.id||gistId;
+        const owner=(data.owner&&data.owner.login)||'';
+        const raw='https://gist.githubusercontent.com/'+(owner?owner+'/':'')+newId+'/raw/schools.json';
+        $('dmgGhGist').value=newId;
+        try{ localStorage.setItem('dmgGhToken', token); localStorage.setItem('dmgGhGist', newId); }catch(e){}
+        $('dmgSyncUrl').value=raw;
+        try{ localStorage.setItem('dmgSchoolSyncUrl', raw); }catch(e){}
+        msg.innerHTML='<span style="color:#1a7f37">已上传 '+arr.length+' 个流派到 GitHub（Gist '+newId+'）</span>';
+      })
+      .catch(e=>{ msg.innerHTML='<span style="color:#c0392b">上传失败：'+escapeHtml(e.message)+'</span>'; });
+  }
+  $('dmgUploadBtn').onclick=uploadSchoolsToGithub;
+  try{ const t=localStorage.getItem('dmgGhToken'); if(t) $('dmgGhToken').value=t; const g=localStorage.getItem('dmgGhGist'); if(g) $('dmgGhGist').value=g; }catch(e){}
+  loadDmgOrder(true);
+
+  setupCloudUI();
+  if(gistPullReady()){ setCloudStatus('正在从 Gist 拉取…'); pullFromCloud().then(()=>{ renderInventory(); renderGroups(); loadDmgOrder(true); }); }
+})();
+</script>
+</body>
+</html>
