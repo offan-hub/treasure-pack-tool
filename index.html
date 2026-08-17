@@ -375,10 +375,16 @@
           <div class="embedded-solver">
             <h3>求解设置</h3>
             <button id="solve" class="primary" style="width:100%">⚡ 一键生成填充方案</button>
+            <div class="row mt" style="gap:8px;align-items:flex-end">
+              <div style="flex:1;min-width:0">
+                <label>连续批次（1–12，多批合并取全局最优）</label>
+                <input type="number" id="batches" min="1" max="12" value="3" style="width:100%">
+              </div>
+              <button id="reshuffle" class="ghost" title="基于新随机种子继续搜索，并合并进跨批全局最优">🔄 换一批</button>
+            </div>
             <label class="mt">排序</label>
             <select id="sortMode" style="width:100%">
-              <option value="default">默认（求解排序）</option>
-              <option value="attr">按属性总分</option>
+              <option value="attr" selected>按属性总分（默认）</option>
               <option value="score">按相邻法宝数</option>
               <option value="fill">按填充率</option>
             </select>
@@ -687,13 +693,32 @@
     }
     return fill();
   }
+  /* —— 属性总分（逐行复刻 UI 层 computeAttributes：同组别才触发 self/buff 加成） —— */
+  function buildOcc(used,infos,total,blocked){ const occ=Uint8Array.from(blocked); used.forEach(u=>{ for(const idx of infos[u.pi].placements[u.pIdx]) occ[idx]=1; }); return occ; }
+  function attrTotalsOfUsed(used,infos,R,C){
+    const N=used.length; const owner=new Array(R*C).fill(-1);
+    used.forEach((u,ii)=>{ for(const idx of infos[u.pi].placements[u.pIdx]) owner[idx]=ii; });
+    const sameGroup=(a,b)=> !!(a&&b && a.group!=null && b.group!=null && a.group===b.group);
+    const adj=[];
+    for(let ii=0;ii<N;ii++){ const s=new Set();
+      for(const idx of infos[used[ii].pi].placements[used[ii].pIdx]){ const r=(idx/C)|0,c=idx%C;
+        for(const [nr,nc] of [[r-1,c],[r+1,c],[r,c-1],[r,c+1]]){ if(nr<0||nr>=R||nc<0||nc>=C) continue; const j=owner[nr*C+nc]; if(j>=0&&j!==ii) s.add(j); } }
+      adj.push(s); }
+    const totals={hp:0,def:0,atk:0};
+    for(let ii=0;ii<N;ii++){ const m=infos[used[ii].pi].attr; const b={hp:Number(m.hp)||0,def:Number(m.def)||0,atk:Number(m.atk)||0};
+      const selfMult={hp:1,def:1,atk:1}; if(m.bonusType==='self'&&m.bonusAttr){ const rate=(Number(m.bonusRate)||0)/100; let k=0; for(const j of adj[ii]){ if(sameGroup(m,infos[used[j].pi].attr)) k++; } selfMult[m.bonusAttr]=1+rate*k; }
+      const buffMult={hp:1,def:1,atk:1}; for(const j of adj[ii]){ const mj=infos[used[j].pi].attr; if(mj.bonusType==='buff'&&mj.bonusAttr&&sameGroup(mj,m)){ const rate=(Number(mj.bonusRate)||0)/100; buffMult[mj.bonusAttr]+=rate; } }
+      totals.hp+=b.hp*selfMult.hp*buffMult.hp; totals.def+=b.def*selfMult.def*buffMult.def; totals.atk+=b.atk*selfMult.atk*buffMult.atk; }
+    return totals;
+  }
+  function weightedDefault(t){ return t.hp*0.34 + t.def*0.33 + t.atk*0.33; }
   /* —— 统一输出构造 —— */
-  function buildOutput(plans,infos,R,C,blocked,capacity,blockedCount,cnt,runs,poolSize,bestFill){
-    const top=plans.slice(0,cnt);
-    return top.map(c=>({
+  function buildOutput(plans,infos,R,C,blocked,capacity,blockedCount,runs,poolSize,bestFill,fullAchievable){
+    return plans.map(c=>({
       filled:c.fill, capacity, blocked:blockedCount,
       placements:c.used.map(u=>{ const info=infos[u.pi]; const idxs=info.placements[u.pIdx]; const cells=idxs.map(idx=>[((idx/C)|0),idx%C]); const minR=Math.min(...cells.map(x=>x[0])),minC=Math.min(...cells.map(x=>x[1])); return {name:info.name,size:info.size,anchor:[minR,minC],cells}; }),
-      score:c.score, timedOut:false, optimal:true, nodes:runs, poolSize, bestFill, runs
+      score:c.score||0, timedOut:false, optimal:true, nodes:runs, poolSize, bestFill, runs,
+      totals:c.totals, weighted:c.weighted, fullAchievable
     }));
   }
   /* —— 基线：生成-筛选分离（贪心基础填充 + 后置 ruin‑recreate），作为方案 A 的补充/兜底 —— */
@@ -740,84 +765,77 @@
     return {plans:arr, runs, poolSize:map.size, bestFill};
   }
 
-  /* ===================== 生成-筛选分离总入口 ===================== */
+  /* ===================== 生成-筛选分离总入口（满填充前提 + 按属性总分排序 + 多策略多样性） ===================== */
   function generatePlans(backpack,pieces,opts){
     opts=opts||{};
     const R=backpack.rows,C=backpack.cols,total=R*C;
     const blocked=new Uint8Array(total); if(backpack.blocked) for(const i of backpack.blocked) if(i>=0&&i<total) blocked[i]=1;
-    const infos=pieces.map(p=>({ name:p.name, size:normalizeShape(p.cells).length, count:Math.max(1,p.count||1), priority:p.priority?1:0, placements:enumeratePlacements(R,C,normalizeShape(p.cells),blocked) })).filter(p=>p.placements.length>0);
+    const infos=pieces.map(p=>({ name:p.name, size:normalizeShape(p.cells).length, count:Math.max(1,p.count||1), priority:p.priority?1:0, placements:enumeratePlacements(R,C,normalizeShape(p.cells),blocked), attr:{ hp:Number(p.hp)||0, def:Number(p.def)||0, atk:Number(p.atk)||0, bonusRate:Number(p.bonusRate)||0, bonusType:p.bonusType||'none', bonusAttr:p.bonusAttr||'hp', group:(p.group!=null?p.group:null) } })).filter(p=>p.placements.length>0);
+    if(infos.length===0) return [];
     const prioritySet=new Set(infos.filter(p=>p.priority).map(p=>p.name));
     const priorityExists=prioritySet.size>0;
     const strategies=opts.strategies||['topleft','center','corners','diagonal','random'];
     const runsPerStrategy=opts.runsPerStrategy||500;
-    const restarts=opts.restarts||1;
+    const restarts=opts.restarts||2;
     const baseSeed=opts.seed||20260721;
     const timeBudget=opts.timeLimitMs||1500;
-    const cap=opts.cap||3000;
-    const cnt=priorityExists?5:(opts.count||10);   // 勾选优先→强制展示前 5；否则→前 10
+    const poolLimit=opts.poolLimit|| (priorityExists?60:50);
     const start=Date.now();
     let blockedCount=0; for(let i=0;i<total;i++) if(blocked[i]) blockedCount++;
     const capacity=total-blockedCount;
 
-    /* ---------- 勾选优先：方案 A（包围 + 有界精确补全），稳定逼近相邻法宝数上限 ---------- */
+    const map=new Map();   // sig -> {used,score,fill,totals,weighted}
+    let runs=0, bestFill=0;
+    function addCandidate(used,score){
+      const occ=buildOcc(used,infos,total,blocked);
+      let filled=0; for(let i=0;i<total;i++) if(occ[i]&&!blocked[i]) filled++;
+      const sig=sigOfUsed(used,infos,R,C);
+      if(map.has(sig)){ const e=map.get(sig); if((score||0)>(e.score||0)) e.score=score; return; }
+      const totals=attrTotalsOfUsed(used,infos,R,C);
+      map.set(sig,{used:used.slice(),score:score||0,fill:filled,totals,weighted:weightedDefault(totals)});
+      runs++; if(filled>bestFill) bestFill=filled;
+    }
+
     if(priorityExists){
       const prioPis=[]; infos.forEach((p,pi)=>{ if(p.priority) prioPis.push(pi); });
-      // 预计算每个优先法宝“满壳（互不相同的邻接格数最多）放置”，仅用此类放置以保证逼近上限
       const prioDistinct=infos.map(()=>null); const prioMaxD=new Array(infos.length).fill(0);
       prioPis.forEach(pi=>{ const pls=infos[pi].placements; const arr=new Array(pls.length); let mx=0;
         for(let k=0;k<pls.length;k++){ const occ2=new Uint8Array(total); for(const idx of pls[k]) occ2[idx]=1; const s=new Set();
           for(const idx of pls[k]){ const r=(idx/C)|0,c=idx%C; for(const [nr,nc] of [[r-1,c],[r+1,c],[r,c-1],[r,c+1]]){ if(nr<0||nr>=R||nc<0||nc>=C) continue; const ni=nr*C+nc; if(!occ2[ni]) s.add(ni); } }
           arr[k]=s.size; if(s.size>mx) mx=s.size; }
         prioDistinct[pi]=arr; prioMaxD[pi]=mx; });
-      const plans=[]; const sigs=new Set();
       const maxAttempts=opts.maxAttempts||3000;
-      const deadline=start+timeBudget;
       let attempt=0;
-      while(plans.length<cnt && (Date.now()-start) < timeBudget*0.55 && attempt<maxAttempts){
+      while(map.size<poolLimit && (Date.now()-start) < timeBudget*0.55 && attempt<maxAttempts){
         attempt++;
         const rng=mulberry32(((baseSeed ^ (attempt*0x2545F491))>>>0));
         const occ=Uint8Array.from(blocked); const instAt=new Array(total).fill(-1); const used=[]; const counts=infos.map(p=>p.count);
         let ok=true; let nextId=0;
         for(const pi of prioPis){
-          const pls=infos[pi].placements;
-          const cand=[];
-          for(let k=0;k<pls.length;k++){
-            const pl=pls[k]; let bad=false; for(const idx of pl){ if(occ[idx]||blocked[idx]){bad=true;break;} } if(bad) continue;
-            if(prioDistinct[pi][k] < prioMaxD[pi]) continue; // 仅满壳内部放置
-            cand.push(k);
-          }
+          const pls=infos[pi].placements; const cand=[];
+          for(let k=0;k<pls.length;k++){ const pl=pls[k]; let bad=false; for(const idx of pl){ if(occ[idx]||blocked[idx]){bad=true;break;} } if(bad) continue; if(prioDistinct[pi][k] < prioMaxD[pi]) continue; cand.push(k); }
           if(cand.length===0){ ok=false; break; }
-          const pick=cand[Math.floor(rng()*cand.length)];
-          const pl=pls[pick]; for(const idx of pl){ occ[idx]=1; } const id=nextId++; instAt[pl[0]]=id; for(const idx of pl) instAt[idx]=id; used.push({pi,pIdx:pick}); counts[pi]--;
+          const pick=cand[Math.floor(rng()*cand.length)]; const pl=pls[pick]; for(const idx of pl){ occ[idx]=1; } const id=nextId++; instAt[pl[0]]=id; for(const idx of pl) instAt[idx]=id; used.push({pi,pIdx:pick}); counts[pi]--;
         }
         if(!ok) continue;
         const shellMask=shellMaskOf(R,C,occ,blocked);
-        let shellCount=0; for(let i=0;i<total;i++) if(shellMask[i]) shellCount++;
-        const res=exactPack(R,C,blocked,infos,occ,instAt,used,counts,nextId,shellMask,{nodeCap:opts.nodeCap||120000, deadline, rng});
-        if(res){
-          const st=buildState(R,C,blocked,res,infos);
-          const score=neighborScore(R,C,st.occ,blocked,res,infos,prioritySet,st.instAt);
-          if(score!==shellCount) continue; // 必须是该配置的极限（满壳 + 无块占 2 壳格 → 每个壳格各一个互异实例）
-          let filled=0; for(let i=0;i<total;i++) if(st.occ[i]&&!blocked[i]) filled++;
-          const sig=sigOfUsed(res,infos,R,C);
-          if(!sigs.has(sig)){ sigs.add(sig); plans.push({used:res,score,fill:filled}); }
-        }
+        const res=exactPack(R,C,blocked,infos,occ,instAt,used,counts,nextId,shellMask,{nodeCap:opts.nodeCap||120000, deadline:start+timeBudget*0.55, rng});
+        if(res){ const st=buildState(R,C,blocked,res,infos); const score=neighborScore(R,C,st.occ,blocked,res,infos,prioritySet,st.instAt); addCandidate(res,score); }
       }
-      plans.sort((a,b)=> (b.score-a.score) || (b.fill-a.fill) || (b.used.length-a.used.length));
-      // 不足 cnt：用基线 greedy+refine 补充（尽力不降低体验），并给兜底分配独立的时间预算
-      if(plans.length<cnt){
-        const fbStart=Date.now(); const fbBudget=Math.max(80,(start+timeBudget)-fbStart);
-        const base=baselinePlans(R,C,blocked,infos,prioritySet,true,strategies,runsPerStrategy,restarts,baseSeed,cap,fbStart,fbBudget,cnt);
-        for(const p of base.plans){ const sig=sigOfUsed(p.used,infos,R,C); if(!sigs.has(sig)){ sigs.add(sig); plans.push(p); if(plans.length>=cnt) break; } }
-        plans.sort((a,b)=> (b.score-a.score) || (b.fill-a.fill) || (b.used.length-a.used.length));
-      }
-      let bestFill=0; for(const p of plans) if(p.fill>bestFill) bestFill=p.fill;
-      return buildOutput(plans,infos,R,C,blocked,capacity,blockedCount,cnt,attempt,sigs.size,bestFill);
     }
 
-    /* ---------- 未勾选优先：基线（生成-筛选分离） ---------- */
-    const base=baselinePlans(R,C,blocked,infos,prioritySet,false,strategies,runsPerStrategy,restarts,baseSeed,cap,start,timeBudget,cnt);
-    return buildOutput(base.plans,infos,R,C,blocked,capacity,blockedCount,cnt,base.runs,base.poolSize,base.bestFill);
+    /* ---------- 多策略基线（贪心 + 后置 refine），无论是否优先都补充多样性 ---------- */
+    const baseStart=Date.now();
+    const base=baselinePlans(R,C,blocked,infos,prioritySet,priorityExists,strategies,runsPerStrategy,restarts,baseSeed,4000,baseStart,timeBudget*0.5,poolLimit*2);
+    for(const p of base.plans){ addCandidate(p.used,p.score); }
+    runs+=base.runs;
+
+    let pool=[...map.values()];
+    const fullAchievable = bestFill===capacity;
+    if(fullAchievable){ const full=pool.filter(p=>p.fill===capacity); if(full.length) pool=full; }  // 满填充前提：本批能满填则只留满填方案
+    pool.sort((a,b)=> (b.weighted-a.weighted) || (b.score-a.score) || (b.fill-a.fill) || (b.used.length-a.used.length));  // 按属性总分（满填优先为第一键）
+    if(pool.length>poolLimit) pool=pool.slice(0,poolLimit);
+    return buildOutput(pool,infos,R,C,blocked,capacity,blockedCount,runs,map.size,bestFill,fullAchievable);
   }
   const api={ generatePlans, normalizeShape, enumeratePlacements, mulberry32, shuffle, greedyFill, neighborScore };
   if(typeof module!=='undefined'&&module.exports) module.exports=api; global.PackCore=api;
@@ -2189,22 +2207,54 @@
     });
   }
 
-  /* ---------- 一键生成 ---------- */
-  $('solve').onclick=()=>{
+  /* ---------- 一键生成（多批次 + 跨批全局最优合并） ---------- */
+  let poolGlobal=[], sigGlobal=new Set(), lastBestW=0, batchSeedBase=20260721, lastRecord=false;
+  function sigOfPlan(p){ return p.placements.map(pl=>pl.name+':'+pl.cells.map(c=>c.join(',')).join(';')).sort().join('|'); }
+  function buildPieces(){
+    const chosen=library.filter(t=>{ const s=sel[t.id]; return s&&s.include&&(s.count||0)>0; });
+    return chosen.map(t=>{ const s=sel[t.id]; return { name:t.id, cells:t.cells, count:s.count, priority:s.priority, hp:t.base&&t.base.hp||0, def:t.base&&t.base.def||0, atk:t.base&&t.base.atk||0, bonusRate:t.bonusRate||0, bonusType:t.bonusType||'none', bonusAttr:t.bonusAttr||'hp', group:t.group||null }; });
+  }
+  function doSolve(seed, accumulate){
+    const chosen=library.filter(t=>{ const s=sel[t.id]; return s&&s.include&&(s.count||0)>0; });
+    if(chosen.length===0){ return {empty:true}; }
+    const pieces=buildPieces();
+    const backpack={ rows:bagRows(), cols:bagCols(), blocked:[...bagBlocked] };
+    const plans=PackCore.generatePlans(backpack,pieces,{seed,runsPerStrategy:500,timeLimitMs:1500});
+    if(!accumulate){ poolGlobal=[]; sigGlobal=new Set(); lastBestW=0; }
+    for(const p of plans){ const sg=sigOfPlan(p); if(!sigGlobal.has(sg)){ sigGlobal.add(sg); poolGlobal.push(p); } }
+    const weights=readWeights();
+    poolGlobal.forEach(p=>{ if(p.weighted==null) p.weighted=weightedScore(p.totals,weights); });
+    const bestNow=poolGlobal.reduce((m,p)=>Math.max(m,p.weighted||0),0);
+    let record=false; if(accumulate && bestNow>lastBestW+1e-6) record=true; lastBestW=Math.max(lastBestW,bestNow);
+    return {empty:false, fullAchievable: plans.length?plans[0].fullAchievable:false, backpack, record, bestNow};
+  }
+  function renderMerged(ms){
+    renderPlans(poolGlobal, lastBackpack, ms);
+    if(lastRecord && poolGlobal.length){ const sb=$('statusBox'); if(sb) sb.textContent='🏆 刷新纪录（跨批全局最优属性评分 '+Math.round(lastBestW)+'） · '+sb.textContent; }
+  }
+  function runBatches(){
+    const N=Math.max(1,Math.min(12, parseInt($('batches').value)||3));
     const enabledCount=library.filter(t=>sel[t.id]&&sel[t.id].include).length;
     const chosen=library.filter(t=>{ const s=sel[t.id]; return s&&s.include&&(s.count||0)>0; });
     if(chosen.length===0){ $('statusBox').textContent= enabledCount>0 ? '⚠️ 已启用 '+enabledCount+' 件法宝，但数量均为 0；请至少为一件填写数量（>0）后再生成。' : '⚠️ 请先在「组别管理」勾选组别以启用法宝，并填写数量（>0）。'; return; }
-    const pieces=chosen.map(t=>({ name:t.id, cells:t.cells, count:sel[t.id].count, priority:sel[t.id].priority }));
-    const backpack={ rows:bagRows(), cols:bagCols(), blocked:[...bagBlocked] };
-    $('statusBox').textContent='⏳ 生成中…（背包 '+backpack.rows+'×'+backpack.cols+'，选中法宝 '+chosen.length+' 种）';
-    $('solve').disabled=true;
+    batchSeedBase=(Date.now()&0x7fffffff);
+    $('statusBox').textContent='⏳ 生成中…（'+N+' 批次合并）';
+    $('solve').disabled=true; if($('reshuffle')) $('reshuffle').disabled=true;
     setTimeout(()=>{
-      const t0=performance.now();
-      const plans=PackCore.generatePlans(backpack,pieces,{runsPerStrategy:500,timeLimitMs:1500});
+      const t0=performance.now(); lastRecord=false;
+      let fullAch=null, back=null;
+      for(let b=0;b<N;b++){ const r=doSolve((batchSeedBase ^ (b*0x9E3779B1))>>>0, b===0?false:true); if(r.empty) break; if(r.fullAchievable!=null) fullAch=r.fullAchievable; back=r.backpack; if(r.record) lastRecord=true; }
       const ms=(performance.now()-t0).toFixed(0);
-      $('solve').disabled=false;
-      renderPlans(plans,backpack,ms);
+      $('solve').disabled=false; if($('reshuffle')) $('reshuffle').disabled=false;
+      if(back) lastBackpack=back;
+      renderMerged(ms);
     },30);
+  }
+  $('solve').onclick=runBatches;
+  if($('reshuffle')) $('reshuffle').onclick=()=>{
+    if(poolGlobal.length===0){ runBatches(); return; }
+    $('reshuffle').disabled=true;
+    setTimeout(()=>{ const t0=performance.now(); const r=doSolve(((Math.random()*1e9)>>>0), true); const ms=(performance.now()-t0).toFixed(0); $('reshuffle').disabled=false; if(r.fullAchievable!=null) lastRecord=r.record; renderMerged(ms); },20);
   };
 
   /* ---------- 复制当前输入配置 ---------- */
@@ -2322,20 +2372,22 @@
     library.forEach(t=>{ colorById[t.id]=t.color; idName[t.id]=t.name; libMap[t.id]={ hp:t.base&&t.base.hp||0, def:t.base&&t.base.def||0, atk:t.base&&t.base.atk||0, bonusRate:t.bonusRate||0, bonusType:t.bonusType||'none', bonusAttr:t.bonusAttr||'hp', group:t.group||null }; });
     const weights=readWeights();
     plans.forEach(p=>{ const a=computeAttributes(p,libMap,R,C); p.totals=a.totals; p.perAttrs=a.per; p.weighted=weightedScore(a.totals,weights); });
-    const mode=$('sortMode')?$('sortMode').value:'default';
+    const mode=$('sortMode')?$('sortMode').value:'attr';
     const sorted=plans.slice();
-    if(mode==='attr') sorted.sort((a,b)=>b.weighted-a.weighted);
-    else if(mode==='score') sorted.sort((a,b)=>b.score-a.score||b.fill-a.fill);
+    if(mode==='score') sorted.sort((a,b)=>b.score-a.score||b.fill-a.fill);
     else if(mode==='fill') sorted.sort((a,b)=>b.fill-a.fill||b.score-a.score);
-    const usedOf={}; library.forEach(t=>usedOf[t.id]=0); sorted.forEach(p=>p.placements.forEach(pl=>{ if(usedOf[pl.name]!=null) usedOf[pl.name]++; }));
+    else sorted.sort((a,b)=>b.weighted-a.weighted);  // attr / 默认：按属性总分
     const hasPrio=library.some(t=>sel[t.id]&&sel[t.id].priority);
     const needN=hasPrio?5:10;
+    const view=sorted.slice(0,needN);
+    const usedOf={}; library.forEach(t=>usedOf[t.id]=0); view.forEach(p=>p.placements.forEach(pl=>{ if(usedOf[pl.name]!=null) usedOf[pl.name]++; }));
     const top0=sorted.length?sorted[0]:null;
     const bestFill=top0?top0.bestFill:0, cap=top0?top0.capacity:0;
     const scoreNote=(hasPrio&&top0)?' · 最高相邻法宝数 '+top0.score:'';
     let attrNote='';
     if(top0){ if(mode==='attr') attrNote=' · 最高属性评分 '+Math.round(top0.weighted); else attrNote=' · 顶配 生命'+fmt(top0.totals.hp)+'/防御'+fmt(top0.totals.def)+'/攻击'+fmt(top0.totals.atk); }
-    $('statusBox').textContent='✅ 基础填充 '+(top0?top0.runs:'-')+' 次 · 候选池 '+(top0?top0.poolSize:'-')+' 套 · 最高填充 '+bestFill+'/'+cap+' 格'+scoreNote+attrNote+' · 耗时 '+ms+'ms'+(sorted.length<needN?' · 不同布局不足 '+needN+' 套':'');
+    const fillWarn=(top0&&top0.fullAchievable===false)?'⚠️ 当前法宝组合无法完全填满，已展示最接近填满的方案 · ':'';
+    $('statusBox').textContent=fillWarn+'✅ 基础填充 '+(top0?top0.runs:'-')+' 次 · 候选池 '+(plans.length)+' 套（已合并跨批） · 最高填充 '+bestFill+'/'+cap+' 格'+scoreNote+attrNote+' · 耗时 '+ms+'ms'+(sorted.length<needN?' · 不同布局不足 '+needN+' 套':'');
     // 统计块
     const stat=(k,v)=>'<div class="stat"><div class="k">'+k+'</div><div class="v">'+v+'</div></div>';
     $('statsBlock').innerHTML =
@@ -2347,16 +2399,16 @@
       stat('已用格子', top0?top0.filled+'/'+top0.capacity:'-') +
       stat('已放物品', top0?top0.placements.length:'-') +
       stat('搜索耗时', ms+'ms') +
-      stat('候选池', top0?top0.poolSize:'-');
+      stat('候选池', plans.length+'（跨批合并）');
     const wrap=$('plans'); wrap.innerHTML='';
     if(sorted.length===0){ wrap.innerHTML='<div class="empty-note">未找到可行方案，请减少法宝数量或扩大背包。</div>'; renderPlanDetail(null); return; }
     function selectPlan(i){
-      const plan=sorted[i];
+      const plan=view[i];
       wrap.querySelectorAll('.plan-card').forEach(c=>c.classList.remove('selected'));
       const card=wrap.querySelector('.plan-card[data-idx="'+i+'"]'); if(card) card.classList.add('selected');
       renderPlanDetail(plan,R,C,idName,usedOf,hasPrio);
     }
-    sorted.forEach((plan,i)=>{
+    view.forEach((plan,i)=>{
       const card=document.createElement('div'); card.className='plan-card';
       const rate=(plan.capacity?plan.filled/plan.capacity*100:0);
       const ratePill='<span class="pill '+(rate>=99?'ok':'warn')+'">填充率 '+rate.toFixed(1)+'%</span>';
@@ -2383,7 +2435,7 @@
       card.dataset.idx=i; card.onclick=()=>selectPlan(i);
       wrap.appendChild(card);
     });
-    if(sorted.length) selectPlan(0);
+    if(view.length) selectPlan(0);
   }
   /* ---------- 右侧详情面板：点击某方案卡后实时渲染其摆放与属性明细 ---------- */
   function renderPlanDetail(plan,R,C,idName,usedOf,hasPrio){
