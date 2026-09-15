@@ -50,6 +50,11 @@
   .cell.blocked { background:var(--blocked); border-color:#1a1d26; }
   .cell.sel { background:var(--accent); border-color:var(--accent-d); color:#fff; }
   .cell.click { cursor:pointer; }
+  /* —— 方案展示优化：gap=0 零基底，同件无缝贴合，异件靠边框分隔 —— */
+  .pg-grid { gap:0; align-items:start; justify-items:start; }
+  .pg-cell2 { position:relative; box-sizing:border-box; border:none; border-radius:3px; }
+  .pg-bt{ border-top:3px solid #111!important; } .pg-bb{ border-bottom:3px solid #111!important; }
+  .pg-bl{ border-left:3px solid #111!important; } .pg-br{ border-right:3px solid #111!important; }
   /* 法宝清单表格 */
   .table-scroll { overflow-x:auto; overflow-y:auto; border:1px solid var(--line); border-radius:9px; max-height:480px; }
   table.inv-table { border-collapse:collapse; width:100%; font-size:12.5px; }
@@ -129,12 +134,11 @@
   .help-card li { margin:5px 0; }
   /* 横屏：区域网格（与对方同构：space / library / result / help 自上而下；library 已合并为单表占满） */
   @media (min-width:900px) and (orientation:landscape){
-    main { grid-template-columns:minmax(0,1fr); grid-template-areas:"space" "library" "result" "dmg" "help"; }
+    main { grid-template-columns:minmax(0,1fr); grid-template-areas:"space" "library" "result" "help"; }
     main>section { display:contents; }
     .space-card { grid-area:space; }
     .lib-card { grid-area:library; }
     .result-card { grid-area:result; }
-    .dmg-card { grid-area:dmg; }
     .help-card { grid-area:help; }
   }
   @media (max-width:899px){
@@ -182,58 +186,6 @@
   .sk-grid input { padding:4px 6px; font-size:12px; }
   .sk-sub { font-size:11.5px; color:var(--accent-d); margin:9px 0 1px; font-weight:600; }
   .sk-note { width:100%; padding:5px 7px; border:1px solid var(--line); border-radius:7px; font-size:12px; }
-  /* 伤害计算模块 */
-  .dmg-top { display:grid; grid-template-columns:minmax(300px,350px) minmax(0,1fr); gap:18px; align-items:start; }
-  @media (max-width:899px){ .dmg-top { grid-template-columns:1fr; } }
-  .dmg-order { border:1px solid var(--line); border-radius:10px; padding:10px; background:#fcfcfe; }
-  .ord-list { display:flex; flex-direction:column; gap:4px; max-height:430px; overflow:auto; margin-top:8px; }
-  .ord-item { display:flex; align-items:center; gap:6px; border:1px solid var(--line); border-radius:8px;
-    padding:5px 8px; background:#fff; font-size:12.5px; cursor:grab; }
-  .ord-item.dragging { opacity:.35; }
-  .ord-item.over { border-color:var(--accent); box-shadow:0 0 0 2px rgba(124,58,237,.16); }
-  .ord-item .no { width:22px; color:var(--muted); font-size:11px; flex:0 0 auto; }
-  .ord-item .nmx { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .ord-item .tag { font-size:10.5px; padding:1px 6px; border-radius:999px; background:#eef2ff; color:var(--accent-d); flex:0 0 auto; }
-  .ord-item .tag.mute { background:#f1f3f7; color:var(--muted); }
-  .ord-item .tag.bad { background:#fdecea; color:#c0392b; }
-  .ord-item .mv { padding:0 6px; font-size:12px; line-height:1.6; flex:0 0 auto; }
-  .trait-box { margin-top:10px; border:1px dashed var(--line); border-radius:9px; padding:9px 11px; background:#f8f9fb; }
-  .trait-box .t { font-size:12px; margin:3px 0; color:#3b4252; }
-  .trait-box .t b { color:var(--accent-d); }
-  .bar { height:7px; border-radius:999px; background:#eef1f5; overflow:hidden; min-width:52px; }
-  .bar i { display:block; height:100%; background:var(--accent); }
-  .dmg-table { border-collapse:collapse; width:100%; font-size:12px; }
-  .dmg-table th, .dmg-table td { border-bottom:1px solid var(--line); padding:5px 7px; text-align:right; }
-  .dmg-table th:first-child, .dmg-table td:first-child { text-align:left; }
-  .dmg-table thead th { background:#f8f9fb; color:var(--muted); font-weight:600; }
-  .dmg-table tr.rd { cursor:pointer; }
-  .dmg-table tr.rd:hover { background:#fafbff; }
-  .dmg-table tr.sub td { background:#fbfcfe; font-size:11.5px; color:#444; }
-  .dmg-table tr.sumrow td { font-weight:700; background:#f3f0ff; }
-  .dmg-sec { margin-top:14px; }
-  .dmg-sec h3 { margin:0 0 8px; font-size:13.5px; }
-  .dmg-cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:9px; margin-top:8px; }
-  .dmg-cards .st { border:1px solid var(--line); border-radius:9px; padding:9px 11px; background:#f8f9fb; }
-  .dmg-cards .st .k { font-size:11px; color:var(--muted); }
-  .dmg-cards .st .v { font-size:18px; font-weight:700; }
-  .dmg-cards .st .d { font-size:11.5px; margin-top:2px; }
-  .up { color:#e6342b; } .down { color:#1f9d55; } .flat { color:var(--muted); }
-  .share-row { display:flex; align-items:center; gap:8px; margin:5px 0; font-size:12px; }
-  .share-row .lb { width:96px; flex:0 0 auto; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .share-row .bar { flex:1; }
-  .share-row .pc { width:112px; text-align:right; flex:0 0 auto; font-variant-numeric:tabular-nums; }
-  .dmg-warn { border:1px solid #f5c6a5; background:#fff7ed; color:#9a3412; border-radius:9px; padding:8px 11px; font-size:12px; margin-top:8px; }
-  #dmgSchool { width:200px; max-width:100%; }
-  #dmgOverview { margin-top:11px; }
-  #dmgOverview .dmg-sec { margin-top:0; }
-  .dmg-school { margin-top:12px; border:1px solid var(--line); border-radius:11px; padding:11px 13px; background:#fbfcfe; }
-  .dmg-school .ds-head { font-size:13px; font-weight:600; margin-bottom:8px; }
-  .dmg-school .ds-head b { color:var(--accent,#2b6cb0); }
-  .dmg-school .sk-name-input { width:150px; }
-  .dmg-import { margin-top:12px; border-top:1px dashed var(--line); padding-top:10px; }
-  .dmg-import summary { cursor:pointer; font-weight:600; color:var(--accent,#2b6cb0); font-size:12.5px; }
-  .dmg-import textarea { width:100%; box-sizing:border-box; margin-top:8px; font-family:monospace; font-size:12px; padding:8px; border:1px solid var(--line); border-radius:8px; resize:vertical; }
-  .dmg-import code { background:#eef1f6; padding:1px 4px; border-radius:4px; font-size:11px; word-break:break-all; }
   .dt-info-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:9px; margin-top:8px; }
   .dt-info-card { border:1px solid var(--line); border-radius:9px; padding:9px 11px; background:#f8f9fb; }
   .dt-info-card .dt-info-title { font-size:11px; color:var(--muted); margin-bottom:2px; }
@@ -419,78 +371,6 @@
       </div>
     </div>
 
-    <!-- 4. 法宝伤害计算 -->
-    <div class="card dmg-card">
-      <h2>4. 法宝伤害计算</h2>
-      <div class="dmg-top">
-        <div class="dmg-order">
-          <label>计算组别</label>
-          <select id="dmgGroup"></select>
-          <div class="row" style="margin-top:9px">
-            <button id="dmgLoad" class="ghost">↻ 从宝鉴读取</button>
-            <button id="dmgBest" class="ghost" title="搜索期望伤害最高的释放顺序">🔍 求最优顺序</button>
-          </div>
-          <div class="cap" id="dmgOrderInfo" style="margin:8px 0 0">尚未读取。</div>
-          <div class="ord-list" id="dmgOrder"></div>
-          <div class="hint">拖拽条目或用 ▲▼ 调整释放顺序；件数取自灵枢宝鉴「数量」列，数量为 0 的不参与。</div>
-        </div>
-        <div>
-          <label>角色基础属性（面板值，不含法宝增益）</label>
-          <div class="add-fields">
-            <div><label>攻击力</label><input type="number" id="dmgAtk" min="0" value="22380"></div>
-            <div><label>防御力</label><input type="number" id="dmgDef" min="0" value="10603"></div>
-            <div><label>最大生命</label><input type="number" id="dmgHp" min="0" value="1089780"></div>
-            <div><label>计算回合数</label><input type="number" id="dmgRounds" min="1" max="30" value="10"></div>
-          </div>
-          <div class="dmg-school" id="dmgSchoolBox" style="display:none">
-            <div class="ds-head" id="dmgSchoolHead" style="display:none">流派：<b>体系</b></div>
-            <div class="trait-box" id="dmgSchoolRules" style="display:none"></div>
-            <details class="dmg-import">
-              <summary>导入流派公式</summary>
-              <textarea id="dmgSchoolJson" rows="5" placeholder='粘贴流派公式 JSON'></textarea>
-              <div class="row" style="margin-top:6px;align-items:center;gap:8px;flex-wrap:wrap">
-                <button id="dmgImportSchool" class="ghost">📥 导入流派公式</button>
-                <button id="dmgSchoolFileBtn" class="ghost">📂 选择文件</button>
-                <input type="file" id="dmgSchoolFile" accept="application/json,.json" style="display:none">
-                <span id="dmgImportMsg" class="cap"></span>
-              </div>
-            </details>
-            <details class="dmg-import">
-              <summary>GitHub 同步 / 上传流派</summary>
-              <div class="row" style="margin-top:6px;align-items:center;gap:8px;flex-wrap:wrap">
-                <input id="dmgSyncUrl" type="text" value="https://gist.githubusercontent.com/offan-hub/5bff74a9d426f0c22393a71ce813275c/raw/schools.json" placeholder="https://raw.githubusercontent.com/用户名/仓库/main/schools.json" style="flex:1;min-width:260px">
-                <button id="dmgSyncBtn" class="ghost">🔄 从 GitHub 同步</button>
-                <span id="dmgSyncMsg" class="cap"></span>
-              </div>
-              <div class="row" style="margin-top:6px;align-items:center;gap:8px;flex-wrap:wrap">
-                <input id="dmgGhToken" type="password" placeholder="GitHub Token（仅存本机）" style="width:260px">
-                <input id="dmgGhGist" type="text" placeholder="Gist ID（可空=新建）" style="width:200px">
-                <button id="dmgUploadBtn" class="ghost">📤 上传到 GitHub</button>
-                <span id="dmgUploadMsg" class="cap"></span>
-              </div>
-            </details>
-            <div class="row" style="align-items:flex-end;gap:16px;flex-wrap:wrap">
-              <div>
-                <label>选择流派</label>
-                <select id="dmgSchool"></select>
-              </div>
-              <div>
-                <label>流派命名</label>
-                <button id="dmgSchoolEdit" class="ghost" disabled title="选择流派后方可重命名">✎ 编辑名称</button>
-              </div>
-            </div>
-          </div>
-          <div class="row" style="margin-top:11px">
-            <button id="dmgRun" class="primary">⚔ 计算伤害</button>
-            <button id="dmgLock" class="ghost" title="把本次结果固定为对比基准，之后每次计算都与它比较">📌 锁定为基准</button>
-            <button id="dmgClearBase" class="ghost">清除基准</button>
-            <span class="cap" id="dmgMsg" style="margin:0 0 0 4px"></span>
-          </div>
-          <div id="dmgOverview"></div>
-        </div>
-      </div>
-      <div id="dmgOut"></div>
-    </div>
 
   </section>
 </main>
@@ -563,6 +443,22 @@
         const r=(idx/C)|0,c=idx%C; const ns=[];
         if(r>0)ns.push(idx-C); if(r<R-1)ns.push(idx+C); if(c>0)ns.push(idx-1); if(c<C-1)ns.push(idx+1);
         for(const n of ns){ if(occ[n]&&!blocked[n]){ const oi=instAt[n]; if(oi>=0&&oi!==instId) nb.add(oi); } }
+      }
+      sc+=nb.size;
+    });
+    return sc;
+  }
+  /* —— 后置评估：1 格法宝「贴重点法宝」数量——统计每个 1 格法宝实例四周相邻（4-邻接）的【不同重点法宝实例】个数；
+         用于「相同属性总分下，优先展示 1 格法宝更贴近重点法宝的组合」。 —— */
+  function keyContactScore(R,C,used,infos,instAt,keySet,oneCellSet){
+    let sc=0;
+    used.forEach((u,instId)=>{
+      if(!oneCellSet.has(infos[u.pi].name)) return;
+      const nb=new Set();
+      for(const idx of infos[u.pi].placements[u.pIdx]){
+        const r=(idx/C)|0,c=idx%C; const ns=[];
+        if(r>0)ns.push(idx-C); if(r<R-1)ns.push(idx+C); if(c>0)ns.push(idx-1); if(c<C-1)ns.push(idx+1);
+        for(const n of ns){ if(instAt[n]>=0 && instAt[n]!==instId){ const oi=instAt[n]; if(keySet.has(infos[used[oi].pi].name)) nb.add(oi); } }
       }
       sc+=nb.size;
     });
@@ -711,13 +607,13 @@
       totals.hp+=b.hp*selfMult.hp*buffMult.hp; totals.def+=b.def*selfMult.def*buffMult.def; totals.atk+=b.atk*selfMult.atk*buffMult.atk; }
     return totals;
   }
-  function weightedDefault(t){ return t.hp*0.34 + t.def*0.33 + t.atk*0.33; }
+  function weightedDefault(t,w){ w=w||{hp:34,atk:33,def:33}; return t.hp*(w.hp/100) + t.atk*w.atk + t.def*w.def; }
   /* —— 统一输出构造 —— */
   function buildOutput(plans,infos,R,C,blocked,capacity,blockedCount,runs,poolSize,bestFill,fullAchievable){
     return plans.map(c=>({
       filled:c.fill, capacity, blocked:blockedCount,
       placements:c.used.map(u=>{ const info=infos[u.pi]; const idxs=info.placements[u.pIdx]; const cells=idxs.map(idx=>[((idx/C)|0),idx%C]); const minR=Math.min(...cells.map(x=>x[0])),minC=Math.min(...cells.map(x=>x[1])); return {name:info.name,size:info.size,anchor:[minR,minC],cells}; }),
-      score:c.score||0, timedOut:false, optimal:true, nodes:runs, poolSize, bestFill, runs,
+      score:c.score||0, keyContact:c.keyContact||0, timedOut:false, optimal:true, nodes:runs, poolSize, bestFill, runs,
       totals:c.totals, weighted:c.weighted, fullAchievable
     }));
   }
@@ -770,10 +666,14 @@
     opts=opts||{};
     const R=backpack.rows,C=backpack.cols,total=R*C;
     const blocked=new Uint8Array(total); if(backpack.blocked) for(const i of backpack.blocked) if(i>=0&&i<total) blocked[i]=1;
-    const infos=pieces.map(p=>({ name:p.name, size:normalizeShape(p.cells).length, count:Math.max(1,p.count||1), priority:p.priority?1:0, placements:enumeratePlacements(R,C,normalizeShape(p.cells),blocked), attr:{ hp:Number(p.hp)||0, def:Number(p.def)||0, atk:Number(p.atk)||0, bonusRate:Number(p.bonusRate)||0, bonusType:p.bonusType||'none', bonusAttr:p.bonusAttr||'hp', group:(p.group!=null?p.group:null) } })).filter(p=>p.placements.length>0);
+    const infos=pieces.map(p=>({ name:p.name, size:normalizeShape(p.cells).length, count:Math.max(1,p.count||1), priority:p.priority?1:0, key:p.key?1:0, placements:enumeratePlacements(R,C,normalizeShape(p.cells),blocked), attr:{ hp:Number(p.hp)||0, def:Number(p.def)||0, atk:Number(p.atk)||0, bonusRate:Number(p.bonusRate)||0, bonusType:p.bonusType||'none', bonusAttr:p.bonusAttr||'hp', group:(p.group!=null?p.group:null) } })).filter(p=>p.placements.length>0);
     if(infos.length===0) return [];
     const prioritySet=new Set(infos.filter(p=>p.priority).map(p=>p.name));
     const priorityExists=prioritySet.size>0;
+    const w = opts.weights || {hp:34,atk:33,def:33};
+    const keySet=new Set(infos.filter(p=>p.key).map(p=>p.name));
+    const oneCellSet=new Set(infos.filter(p=>p.size===1).map(p=>p.name));
+    const hasOneCell=oneCellSet.size>0;
     const strategies=opts.strategies||['topleft','center','corners','diagonal','random'];
     const runsPerStrategy=opts.runsPerStrategy||500;
     const restarts=opts.restarts||2;
@@ -792,7 +692,9 @@
       const sig=sigOfUsed(used,infos,R,C);
       if(map.has(sig)){ const e=map.get(sig); if((score||0)>(e.score||0)) e.score=score; return; }
       const totals=attrTotalsOfUsed(used,infos,R,C);
-      map.set(sig,{used:used.slice(),score:score||0,fill:filled,totals,weighted:weightedDefault(totals)});
+      const st=buildState(R,C,blocked,used,infos);
+      const kc=hasOneCell?keyContactScore(R,C,used,infos,st.instAt,keySet,oneCellSet):0;
+      map.set(sig,{used:used.slice(),score:score||0,fill:filled,totals,weighted:weightedDefault(totals,w),keyContact:kc});
       runs++; if(filled>bestFill) bestFill=filled;
     }
 
@@ -833,7 +735,7 @@
     let pool=[...map.values()];
     const fullAchievable = bestFill===capacity;
     if(fullAchievable){ const full=pool.filter(p=>p.fill===capacity); if(full.length) pool=full; }  // 满填充前提：本批能满填则只留满填方案
-    pool.sort((a,b)=> (b.weighted-a.weighted) || (b.score-a.score) || (b.fill-a.fill) || (b.used.length-a.used.length));  // 按属性总分（满填优先为第一键）
+    pool.sort((a,b)=> (b.weighted-a.weighted) || (b.keyContact-a.keyContact) || (b.score-a.score) || (b.fill-a.fill) || (b.used.length-a.used.length));  // 按属性总分（满填优先为第一键）；同分下优先 1 格法宝贴重点法宝更多的组合
     if(pool.length>poolLimit) pool=pool.slice(0,poolLimit);
     return buildOutput(pool,infos,R,C,blocked,capacity,blockedCount,runs,map.size,bestFill,fullAchievable);
   }
@@ -939,19 +841,6 @@
     {id:'B63',name:'九宫牌',group:'体',cells:[[0,0],[1,0]],base:{hp:2320,def:11,atk:28},bonusRate:0,bonusType:'none',bonusAttr:'hp',count:1}
   ];
 
-  /* ===================== 法宝技能参数（伤害计算器唯一数据源） =====================
-     统一结构，引擎只认参数、不认名字：新增法宝只需在「详情」面板里填数，无需改代码。
-       on    : 是否参与输出计算（false = 只占顺序位，0 伤害 0 增益，如九宫牌/灵兽肉）
-       every : 每 N 回合释放一次        from : 从第几回合起可释放
-       hold  : 轮换段走到最后一段后保持（true）/ 循环回第一段（false）
-       cycle : 轮换段数组，每段 { dmg, shield, gainPre, gain, note }
-         dmg     伤害系数：×攻击 / ×防御 / ×最大生命 / ×当前护盾
-         shield  产生护盾：×攻击 / ×防御 / ×最大生命
-         gainPre 释放「前」叠加的增益（影响本次伤害，如巨灵擎天先叠法天象地）
-         gain    释放「后」叠加的增益
-     增益键：lianti 炼体 / jinshen 金身 / chuishi 锤势 / fatian 法天象地 */
-  const GAIN_KEYS = ['lianti','jinshen','chuishi','fatian'];
-  const GAIN_CN   = { lianti:'炼体', jinshen:'金身', chuishi:'锤势', fatian:'法天象地' };
   function emptyEff(){
     return { dmg:{atk:0,def:0,hpMax:0,shield:0}, shield:{atk:0,def:0,hpMax:0},
              gainPre:{lianti:0,jinshen:0,chuishi:0,fatian:0}, gain:{lianti:0,jinshen:0,chuishi:0,fatian:0}, note:'' };
@@ -970,51 +859,6 @@
     const cyc = (Array.isArray(sk.cycle)&&sk.cycle.length) ? sk.cycle.map(mkEff) : [emptyEff()];
     return { on: sk.on!==false, every: Math.max(1,Number(sk.every)||1), from: Math.max(1,Number(sk.from)||1),
              hold: sk.hold!==false, cycle: cyc, desc: String(sk.desc||'') };
-  }
-  // 技能是否"有内容"（全 0 系数且无增益 = 尚未配置，计算器里标灰）
-  function skillHasContent(sk){
-    if(!sk||!sk.on) return false;
-    return sk.cycle.some(e =>
-      e.dmg.atk||e.dmg.def||e.dmg.hpMax||e.dmg.shield ||
-      e.shield.atk||e.shield.def||e.shield.hpMax ||
-      GAIN_KEYS.some(k=>e.gainPre[k]||e.gain[k]));
-  }
-  /* 预置技能：用户未在详情里保存过的法宝，按名称自动套用这里的默认参数 */
-  const DEFAULT_SKILLS = {
-    '真武神镯':{ on:true, every:2, from:1, hold:true, desc:'每 2 回合释放；三段轮换：聚盾 → 翻海拳 → 破界拳（第 3 次起固定破界拳）', cycle:[
-      mkEff({ shield:{atk:4.0}, gain:{lianti:2}, note:'第1次：获得 400% 攻击力的护盾，炼体+2' }),
-      mkEff({ dmg:{atk:2.0, hpMax:0.10}, note:'第2次【翻海拳】：200% 攻击 + 10% 最大生命' }),
-      mkEff({ dmg:{atk:4.0, hpMax:0.30, shield:1.0}, note:'第3次起【破界拳】：400% 攻击 + 30% 最大生命 + 100% 当前护盾' })
-    ]},
-    '百炼成金锤':{ on:true, every:1, from:1, hold:true, desc:'每回合释放：60% 攻击 + 240% 防御，金身+2', cycle:[
-      mkEff({ dmg:{atk:0.6, def:2.4}, gain:{jinshen:2}, note:'60% 攻击 + 240% 防御，释放后金身+2' })
-    ]},
-    '百炼短锤':{ on:true, every:1, from:1, hold:true, desc:'每回合释放：50% 攻击 + 200% 防御，金身+2', cycle:[
-      mkEff({ dmg:{atk:0.5, def:2.0}, gain:{jinshen:2}, note:'50% 攻击 + 200% 防御，释放后金身+2' })
-    ]},
-    '巨灵擎天':{ on:true, every:1, from:3, hold:true, desc:'第 3 回合起每回合释放：先叠【法天象地】+1，再打 120% 攻击 + 480% 防御，金身+5', cycle:[
-      mkEff({ gainPre:{fatian:1}, dmg:{atk:1.2, def:4.8}, gain:{jinshen:5}, note:'释放前先叠法天象地+1（本次伤害即享受），伤害 120% 攻击 + 480% 防御，释放后金身+5' })
-    ]},
-    '大力丸':{ on:true, every:1, from:1, hold:true, desc:'每回合释放：炼体+2（无直接伤害）', cycle:[
-      mkEff({ gain:{lianti:2}, note:'炼体+2' })
-    ]},
-    '罡体不破甲':{ on:true, every:1, from:1, hold:true, desc:'每回合释放：获得 65% 攻击力的护盾，炼体+1', cycle:[
-      mkEff({ shield:{atk:0.65}, gain:{lianti:1}, note:'护盾 = 65% 攻击力，炼体+1' })
-    ]},
-    '罡体腰带':{ on:true, every:1, from:1, hold:true, desc:'每回合释放：获得 100% 攻击力的护盾，炼体+1', cycle:[
-      mkEff({ shield:{atk:1.0}, gain:{lianti:1}, note:'护盾 = 100% 攻击力，炼体+1' })
-    ]},
-    '无相念珠':{ on:true, every:1, from:1, hold:true, desc:'纯伤害法宝，系数待录入：请在下方填写倍率后生效', cycle:[ mkEff({ note:'请填写伤害系数（×攻击 / ×防御 / ×最大生命）' }) ]},
-    '无相渡敌钵':{ on:true, every:1, from:1, hold:true, desc:'纯伤害法宝，系数待录入：请在下方填写倍率后生效', cycle:[ mkEff({ note:'请填写伤害系数（×攻击 / ×防御 / ×最大生命）' }) ]},
-    '九宫牌':{ on:false, every:1, from:1, hold:true, desc:'增伤/减伤类，不产生直接输出，不参与伤害计算', cycle:[ mkEff() ]},
-    '灵兽肉':{ on:false, every:1, from:1, hold:true, desc:'恢复生命值，但不提升最大生命上限 → 对输出无影响，不参与伤害计算', cycle:[ mkEff() ]}
-  };
-  // 取一件法宝的生效技能：用户自定义优先，其次按名称套预置
-  function effSkill(t){
-    if(!t) return null;
-    if(t.skill) return normalizeSkill(t.skill);
-    const d=DEFAULT_SKILLS[t.name];
-    return d? normalizeSkill(d) : null;
   }
 
   /* ---------- 灵枢宝鉴：本地持久化（自动保存，避免重复录入） ---------- */
@@ -1553,7 +1397,6 @@
     });
     renderGroupFilter();
     const dg=$('drawGroup'); if(dg) dg.innerHTML=groupOptions(''); // 同步「添加法宝」的组别下拉
-    renderDmgSchoolSel(); renderDmgGroupSel();                     // 同步伤害计算器的流派/组别下拉
   }
   function renderGroupFilter(){
     const sel2=$('groupFilter'); const cur=sel2.value; sel2.innerHTML='<option value="all">全部组别</option><option value="ungrouped">未分组</option>';
@@ -1574,655 +1417,58 @@
   }
   function groupOptions(cur){ let h='<option value="">未分组</option>'; groups.forEach(g=>{ h+='<option value="'+escapeHtml(g.id)+'"'+(cur===g.id?' selected':'')+'>'+escapeHtml(g.name)+'</option>'; }); return h; }
 
-  /* ===================== 法宝详情弹窗：查看全部信息 + 录入技能参数 ===================== */
-  let dtIdx=-1, dtDraft=null;
-  function getPath(o,p){ const ks=p.split('.'); let c=o; for(const k of ks){ if(c==null) return undefined; c=c[k]; } return c; }
-  function setPath(o,p,v){ const ks=p.split('.'); let c=o; for(let i=0;i<ks.length-1;i++) c=c[ks[i]]; c[ks[ks.length-1]]=v; }
-  function fNum(p,label,step){ const v=getPath(dtDraft,p); return '<div><label>'+label+'</label><input type="number" step="'+(step||'0.01')+'" class="skf" data-p="'+p+'" value="'+(Number(v)||0)+'"></div>'; }
+  /* ===================== 法宝详情弹窗：只读查看全部信息 ===================== */
+  let dtIdx=-1;
   function openDetail(i){
     const t=library[i]; if(!t) return;
     dtIdx=i;
-    dtDraft = effSkill(t) || normalizeSkill({on:true,every:1,from:1,hold:true,cycle:[emptyEff()],desc:''});
     $('dtTitle').textContent='法宝详情 · '+t.name;
     renderDetail();
     $('dtMask').classList.add('on');
   }
-  function closeDetail(){ $('dtMask').classList.remove('on'); dtIdx=-1; dtDraft=null; }
+  function closeDetail(){ $('dtMask').classList.remove('on'); dtIdx=-1; }
   function renderDetail(){
     const t=library[dtIdx]; if(!t) return;
     const s=sel[t.id]||{}; const g=t.group?groups.find(x=>x.id===t.group):null;
     const BT={none:'无加成',self:'自身受加成',buff:'给他人加成'}, BA={hp:'生命值',def:'防御力',atk:'攻击力'};
-    $('dtMsg').textContent = t.skill ? '技能参数：自定义' : (DEFAULT_SKILLS[t.name] ? '技能参数：内置预置（保存后转为自定义）' : '技能参数：尚未配置');
+    const nf=n=>Math.round(n||0).toLocaleString('en-US');
+    $('dtMsg').textContent='法宝详情（只读）';
     let h='';
-    /* --- 基本信息（只读展示，编辑仍在表格里做） --- */
+    /* --- 基本信息（只读展示，编辑在表格里做） --- */
     h+='<div class="sk-sub">基本信息</div><div class="dt-info-grid">'+
       '<div class="dt-info-card"><div class="dt-info-title">名称</div><div class="dt-info-body">'+escapeHtml(t.name)+(t.key?' <span style="color:#e6342b">★重点</span>':'')+'</div></div>'+
       '<div class="dt-info-card"><div class="dt-info-title">组别</div><div class="dt-info-body">'+escapeHtml(g?g.name:'未分组')+'</div></div>'+
       '<div class="dt-info-card"><div class="dt-info-title">占格</div><div class="dt-info-body">'+t.cells.length+' 格</div></div>'+
       '<div class="dt-info-card"><div class="dt-info-title">当前数量</div><div class="dt-info-body">'+(t.count||0)+'</div></div>'+
-      '<div class="dt-info-card"><div class="dt-info-title">生命</div><div class="dt-info-body">'+dmgFmt((t.base&&t.base.hp)||0)+'</div></div>'+
-      '<div class="dt-info-card"><div class="dt-info-title">防御</div><div class="dt-info-body">'+dmgFmt((t.base&&t.base.def)||0)+'</div></div>'+
-      '<div class="dt-info-card"><div class="dt-info-title">攻击</div><div class="dt-info-body">'+dmgFmt((t.base&&t.base.atk)||0)+'</div></div>'+
+      '<div class="dt-info-card"><div class="dt-info-title">生命</div><div class="dt-info-body">'+nf((t.base&&t.base.hp)||0)+'</div></div>'+
+      '<div class="dt-info-card"><div class="dt-info-title">防御</div><div class="dt-info-body">'+nf((t.base&&t.base.def)||0)+'</div></div>'+
+      '<div class="dt-info-card"><div class="dt-info-title">攻击</div><div class="dt-info-body">'+nf((t.base&&t.base.atk)||0)+'</div></div>'+
       '<div class="dt-info-card"><div class="dt-info-title">加成</div><div class="dt-info-body">'+(t.bonusType==='none'?'无':((t.bonusRate||0)+'% · '+BT[t.bonusType]+' · '+BA[t.bonusAttr||'hp']))+'</div></div>'+
       '<div class="dt-info-card"><div class="dt-info-title">启用状态</div><div class="dt-info-body">'+(s.include?'已启用':'未启用')+'</div></div>'+
       '</div><div style="margin-top:9px">'+shapeMini(t.cells,t.color)+'</div>';
-    /* --- 技能参数 --- */
-    h+='<div class="sk-sub" style="margin-top:14px">技能参数（伤害计算器读取此处）</div>';
-    h+='<div class="row" style="align-items:flex-end;gap:10px">'+
-       '<label style="display:flex;align-items:center;gap:6px;margin:0"><input type="checkbox" id="skOn" '+(dtDraft.on?'checked':'')+'> 参与输出计算</label>'+
-       '<div><label>每 N 回合释放</label><input type="number" min="1" step="1" id="skEvery" value="'+dtDraft.every+'" style="width:88px"></div>'+
-       '<div><label>从第几回合起</label><input type="number" min="1" step="1" id="skFrom" value="'+dtDraft.from+'" style="width:88px"></div>'+
-       '<div><label>轮换到末段后</label><select id="skHold" style="width:130px"><option value="1"'+(dtDraft.hold?' selected':'')+'>保持最后一段</option><option value="0"'+(dtDraft.hold?'':' selected')+'>循环回第一段</option></select></div>'+
-       '</div>';
-    h+='<label>技能描述</label><input type="text" class="sk-note" id="skDesc" value="'+escapeHtml(dtDraft.desc||'')+'" placeholder="用一句话描述这件法宝的技能">';
-    dtDraft.cycle.forEach((e,ci)=>{
-      h+='<div class="sk-seg"><h5><span class="badge">第 '+(ci+1)+' 次释放</span>'+
-         (dtDraft.cycle.length>1?'<button class="del skDelSeg" data-c="'+ci+'" style="margin-left:auto;padding:2px 8px">删除本段</button>':'')+'</h5>'+
-         '<div class="sk-sub">伤害系数（0 = 本段不造成伤害）</div><div class="sk-grid">'+
-           fNum('cycle.'+ci+'.dmg.atk','×攻击力')+fNum('cycle.'+ci+'.dmg.def','×防御力')+
-           fNum('cycle.'+ci+'.dmg.hpMax','×最大生命')+fNum('cycle.'+ci+'.dmg.shield','×当前护盾')+
-         '</div>'+
-         '<div class="sk-sub">产生护盾</div><div class="sk-grid">'+
-           fNum('cycle.'+ci+'.shield.atk','×攻击力')+fNum('cycle.'+ci+'.shield.def','×防御力')+fNum('cycle.'+ci+'.shield.hpMax','×最大生命')+
-         '</div>'+
-         '<div class="sk-sub">释放「前」叠增益（本次伤害即享受）</div><div class="sk-grid">'+
-           GAIN_KEYS.map(k=>fNum('cycle.'+ci+'.gainPre.'+k,GAIN_CN[k],'1')).join('')+
-         '</div>'+
-         '<div class="sk-sub">释放「后」叠增益</div><div class="sk-grid">'+
-           GAIN_KEYS.map(k=>fNum('cycle.'+ci+'.gain.'+k,GAIN_CN[k],'1')).join('')+
-         '</div>'+
-         '<label>本段说明</label><input type="text" class="sk-note skf" data-p="cycle.'+ci+'.note" value="'+escapeHtml(e.note||'')+'">'+
-         '</div>';
-    });
-    h+='<div class="row" style="margin-top:9px"><button id="skAddSeg" class="ghost">＋ 增加一个轮换段</button>'+
-       (DEFAULT_SKILLS[t.name]?'<button id="skReset" class="ghost">↺ 恢复内置预置</button>':'')+
-       '<span class="hint" style="margin:0 0 0 6px">系数按「倍率」填写：2.0 = 200%。护盾无上限且不消耗。</span></div>';
     $('dtBody').innerHTML=h;
-    /* 绑定 */
-    $('dtBody').querySelectorAll('.skf').forEach(el=>{
-      el.onchange=()=>{ const p=el.dataset.p; setPath(dtDraft,p, el.type==='number'?(Number(el.value)||0):el.value); };
-    });
-    $('skOn').onchange=e=>{ dtDraft.on=e.target.checked; };
-    $('skEvery').onchange=e=>{ dtDraft.every=Math.max(1,parseInt(e.target.value)||1); e.target.value=dtDraft.every; };
-    $('skFrom').onchange=e=>{ dtDraft.from=Math.max(1,parseInt(e.target.value)||1); e.target.value=dtDraft.from; };
-    $('skHold').onchange=e=>{ dtDraft.hold=(e.target.value==='1'); };
-    $('skDesc').onchange=e=>{ dtDraft.desc=e.target.value; };
-    $('skAddSeg').onclick=()=>{ dtDraft.cycle.push(emptyEff()); renderDetail(); };
-    $('dtBody').querySelectorAll('.skDelSeg').forEach(el=>el.onclick=()=>{ dtDraft.cycle.splice(+el.dataset.c,1); if(!dtDraft.cycle.length) dtDraft.cycle=[emptyEff()]; renderDetail(); });
-    const rs=$('skReset'); if(rs) rs.onclick=()=>{ dtDraft=normalizeSkill(DEFAULT_SKILLS[t.name]); renderDetail(); };
   }
   $('dtX').onclick=closeDetail; $('dtCancel').onclick=closeDetail;
   $('dtMask').onclick=e=>{ if(e.target===$('dtMask')) closeDetail(); };
-  $('dtSave').onclick=()=>{
-    if(dtIdx<0||!dtDraft) return closeDetail();
-    library[dtIdx].skill = normalizeSkill(dtDraft);
-    saveLibrary(); renderInventory(); renderDmgOrder();
-    closeDetail();
-  };
+  $('dtSave').onclick=closeDetail;
 
-  /* ===================== 伤害引擎（通用：rule 描述增益通道 gains + 特质钩子 traits，引擎只解释 rule） =====================
-     流派公式 JSON 结构（详见 skill treasure-school-formula / formula-spec.md）：
-       rule.gains : { 通道键:{ label, cap, perRound, boost:{atk,def,hp,zeng} } }   —— 每回合自动 +perRound（受 cap 限制）
-       rule.traits: [ {type:'reReleaseOnRoundEnd', gain, atLeast, chance},
-                      {type:'applyStatusOnHit', status},
-                      {type:'attackBonusOnStatus', status, pctOf:'atk'|'def'|'hp'|'shield', pct, dmgType},
-                      {type:'attackBonusOnHit', pctOf:'atk'|'def'|'hp'|'shield', pct, dmgType} ]
-     伤害 = (基础伤害 + 状态额外伤害) × 增伤；增伤由各通道 boost.zeng 累加。 */
-  const TI_RULE = {
-    gains:{
-      lianti:  { label:'炼体', cap:60, perRound:0,  boost:{ atk:0.01, hp:0.005 } },
-      jinshen: { label:'金身', cap:50, perRound:10, boost:{ zeng:0.01 } },
-      chuishi: { label:'锤势', cap:20, perRound:5,  boost:{ def:0.05 } },
-      fatian:  { label:'法天象地', cap:3, perRound:0, boost:{ atk:0.20, def:0.20 } }
-    },
-    traits:[
-      { type:'reReleaseOnRoundEnd', gain:'jinshen', atLeast:50, chance:0.4 }
-    ]
-  };
-  /* 流派配置：id 内部键；name 显示名；group 组别（与计算组别一致）；rule 非空才启用计算。
-     内置流派写于此；用户经「导入流派公式」新增/覆盖的流派存 localStorage（SCHOOL_DEFS_KEY），启动时合并。 */
-  const BUILTIN_SCHOOLS = {
-    ti:{ id:'ti', name:'体系', group:'体', rule:TI_RULE, builtin:true }
-  };
-  const SCHOOL_DEFS_KEY='dmgSchoolDefs';
-  let DMG_SCHOOLS = {};
-  function loadStoredSchools(){ try{ const a=JSON.parse(localStorage.getItem(SCHOOL_DEFS_KEY)||'[]'); return Array.isArray(a)?a:[]; }catch(e){ return []; } }
-  function applyStoredSchools(){
-    DMG_SCHOOLS={};
-    for(const k in BUILTIN_SCHOOLS) DMG_SCHOOLS[k]=Object.assign({},BUILTIN_SCHOOLS[k]);
-    loadStoredSchools().forEach(s=>{ if(s&&s.id) DMG_SCHOOLS[s.id]=Object.assign({}, (DMG_SCHOOLS[s.id]||{id:s.id,group:s.group||'体'}), s); });
-  }
-  function saveStoredSchools(){
-    try{
-      const arr=Object.values(DMG_SCHOOLS).map(s=>({ id:s.id, name:s.name, group:s.group||'体', rule:s.rule||null, desc:s.desc||'', skills:s.skills||null }));
-      localStorage.setItem(SCHOOL_DEFS_KEY, JSON.stringify(arr));
-    }catch(e){}
-  }
-  applyStoredSchools();
-  /* ---------- 通用增益 / 伤害计算（只认 rule.gains / rule.traits） ---------- */
-  function gainKeys(rule){ return rule && rule.gains ? Object.keys(rule.gains) : []; }
-  function dmgAtk(s,B,rule){ let m=1; for(const k of gainKeys(rule)){ const b=rule.gains[k].boost; if(b&&b.atk) m+=s[k]*b.atk; } return B.atk*m; }
-  function dmgDef(s,B,rule){ let m=1; for(const k of gainKeys(rule)){ const b=rule.gains[k].boost; if(b&&b.def) m+=s[k]*b.def; } return B.def*m; }
-  function dmgHp (s,B,rule){ let m=1; for(const k of gainKeys(rule)){ const b=rule.gains[k].boost; if(b&&b.hp)  m+=s[k]*b.hp;  } return B.hp*m; }
-  function dmgZeng(s,rule){ let z=1; for(const k of gainKeys(rule)){ const b=rule.gains[k].boost; if(b&&b.zeng) z+=s[k]*b.zeng; } return z; }
-  function gainCap(rule,k){ return (rule.gains[k]&&rule.gains[k].cap!=null)? rule.gains[k].cap : Infinity; }
-  function applySkillGain(s,gainObj,rule){ if(!gainObj) return; for(const k in gainObj){ if(!(k in rule.gains)) continue; s[k]=Math.min(gainCap(rule,k), s[k]+(gainObj[k]||0)); } }
-  function dmgByType(t,s,B,rule){ if(t==='atk') return dmgAtk(s,B,rule); if(t==='def') return dmgDef(s,B,rule); if(t==='hp') return dmgHp(s,B,rule); if(t==='shield') return s.shield; return 0; }
-  function unitFires(u,round){
-    const sk=u.skill; if(!sk||!sk.on) return false;
-    if(round < sk.from) return false;
-    return ((round - sk.from) % sk.every)===0;
-  }
-  function pickEff(sk,fired){
-    const n=sk.cycle.length; if(!n) return null;
-    return sk.hold ? sk.cycle[Math.min(fired,n-1)] : sk.cycle[fired % n];
-  }
-  /* 单件法宝的一次释放：返回 {d, extra}；target.status 为持续状态集合（整场战斗共享） */
-  function fireUnit(u,s,B,rule,target){
-    const e=pickEff(u.skill,u.fired); u.fired++;
-    if(!e) return { d:0, extra:0 };
-    applySkillGain(s,e.gainPre,rule);
-    let base = dmgAtk(s,B,rule)*e.dmg.atk + dmgDef(s,B,rule)*e.dmg.def + dmgHp(s,B,rule)*e.dmg.hpMax + s.shield*e.dmg.shield;
-    let extra = 0;
-    for(const t of (rule.traits||[])){
-      if(t.type==='attackBonusOnStatus' && target.status.has(t.status))
-        extra += (t.pct||0) * dmgByType(t.pctOf,s,B,rule);
-      else if(t.type==='attackBonusOnHit')
-        extra += (t.pct||0) * dmgByType(t.pctOf,s,B,rule);
-    }
-    const d=(base+extra)*dmgZeng(s,rule);
-    if(e.shield.atk||e.shield.def||e.shield.hpMax)
-      s.shield += dmgAtk(s,B,rule)*e.shield.atk + dmgDef(s,B,rule)*e.shield.def + dmgHp(s,B,rule)*e.shield.hpMax;
-    applySkillGain(s,e.gain,rule);
-    for(const t of (rule.traits||[])) if(t.type==='applyStatusOnHit') target.status.add(t.status);
-    return { d, extra };
-  }
-  /* units: [{name,label,skill}]；mode: 'exp' 期望（二次释放×概率）/ 'max' 极限（全触发）；rule: 流派公式 */
-  function dmgSimulate(units,B,rounds,mode,rule){
-    const s={ shield:0 }; gainKeys(rule).forEach(k=> s[k]=0);
-    const target={ status:new Set() };
-    const us=units.map(u=>({name:u.name,label:u.label,skill:u.skill,fired:0}));
-    const per=[], byName={}, byInst={};
-    let total=0;
-    for(let round=1; round<=rounds; round++){
-      for(const k of gainKeys(rule)){ const g=rule.gains[k]; if(g.perRound) s[k]=Math.min(gainCap(rule,k), s[k]+g.perRound); }
-      const rows={}; let normal=0, re=0;
-      const bump=(u,v,isRe,ex)=>{
-        const kk=isRe?'re':'normal';
-        if(!rows[u.name]) rows[u.name]={normal:0,re:0,inst:{},extra:0};
-        rows[u.name][kk]+=v; rows[u.name].extra+=(ex||0);
-        if(!rows[u.name].inst[u.label]) rows[u.name].inst[u.label]={normal:0,re:0};
-        rows[u.name].inst[u.label][kk]+=v;
-        if(!byName[u.name]) byName[u.name]={normal:0,re:0};
-        byName[u.name][kk]+=v;
-        if(!byInst[u.label]) byInst[u.label]={name:u.name,normal:0,re:0};
-        byInst[u.label][kk]+=v;
-      };
-      for(const u of us){ if(!unitFires(u,round)) continue; const r=fireUnit(u,s,B,rule,target); normal+=r.d; if(r.d) bump(u,r.d,false,r.extra); }
-      for(const t of (rule.traits||[])){
-        if(t.type!=='reReleaseOnRoundEnd') continue;
-        if(s[t.gain] < (t.atLeast||0)) continue;
-        const ww = mode==='max' ? 1 : (t.chance||0);
-        for(const u of us){
-          if(!unitFires(u,round)) continue;
-          u.fired--;                               // 二次释放沿用本回合的效果段
-          const r2=fireUnit(u,s,B,rule,target); const d2=r2.d*ww; re+=d2; if(d2) bump(u,d2,true,r2.extra*ww);
-        }
-      }
-      per.push({ round, normal, re, total:normal+re, rows, state:Object.assign({},s) });
-      total+=normal+re;
-    }
-    return { total, per, byName, byInst };
-  }
-
-  /* ===================== 伤害计算模块 UI ===================== */
-  const TI_RE=/^体(系)?$/;
-  function isTiGroup(gid){ return TI_RE.test(String(gid||'')); }
-  let dmgOrder=[];      // 释放序列 [{id,name}]
-  let dmgLast=null;     // 上一次计算结果（自动对比基准）
-  let dmgBase=null;     // 手动锁定的对比基准
-  let dmgSchool='';     // 当前流派（''=未选）
-  function curSchool(){ return DMG_SCHOOLS[dmgSchool]||null; }
-  function schoolSupported(){ return !!(DMG_SCHOOLS[dmgSchool]&&DMG_SCHOOLS[dmgSchool].rule); }
-  /* 解析某法宝在当前流派下的生效技能：流派自带 skills 覆盖优先，否则回退法宝自身/预置 */
-  function resolveSkill(school,t){
-    if(school && school.skills && school.skills[t.name]) return normalizeSkill(school.skills[t.name]);
-    return effSkill(t);
-  }
-  function dmgFmt(n){ return Math.round(n||0).toLocaleString('en-US'); }
-  function deltaSpan(cur,prev,unit){
-    if(prev==null||!isFinite(prev)) return '';
-    const d=cur-prev;
-    if(Math.abs(d)<0.5) return '<span class="flat">持平</span>';
-    return '<span class="'+(d>0?'up':'down')+'">'+(d>0?'+':'')+dmgFmt(d)+(unit||'')+'</span>';
-  }
-  function deltaPct(cur,prev){
-    if(prev==null||!isFinite(prev)||Math.abs(prev)<1e-9) return '';
-    const r=(cur/prev-1)*100;
-    if(Math.abs(r)<0.05) return '<span class="flat">±0.0%</span>';
-    return '<span class="'+(r>0?'up':'down')+'">'+(r>0?'+':'')+r.toFixed(1)+'%</span>';
-  }
-  function describeRule(rule, desc){
-    const gl={}; for(const k in rule.gains) gl[k]=rule.gains[k].label||k;
-    const attrMap={atk:'攻击',def:'防御',hp:'生命',shield:'护盾'};
-    let h='';
-    if(desc) h+='<div class="t" style="color:var(--accent-d)">'+escapeHtml(desc)+'</div>';
-    const gs=Object.keys(rule.gains);
-    if(gs.length){
-      h+='<div class="t"><b>增益通道</b></div>';
-      for(const k of gs){
-        const g=rule.gains[k], L=gl[k], bs=[];
-        if(g.boost){ const b=g.boost; if(b.atk) bs.push('攻击+'+Math.round(b.atk*100)+'%/层'); if(b.def) bs.push('防御+'+Math.round(b.def*100)+'%/层'); if(b.hp) bs.push('生命+'+Math.round(b.hp*100)+'%/层'); if(b.zeng) bs.push('增伤+'+Math.round(b.zeng*100)+'%/层'); }
-        let line='· 【'+escapeHtml(L)+'】上限 '+g.cap+' 层';
-        if(g.perRound) line+='；每回合 +'+g.perRound;
-        if(bs.length) line+='；'+bs.join('，');
-        h+='<div class="t sub">'+line+'</div>';
-      }
-    }
-    const tr=rule.traits||[];
-    if(tr.length){
-      h+='<div class="t"><b>特质</b></div>';
-      for(const t of tr){
-        if(t.type==='reReleaseOnRoundEnd'){
-          h+='<div class="t sub">· 【'+escapeHtml(gl[t.gain]||t.gain)+'】达到 '+t.atLeast+' 层时，每回合结束有 '+Math.round(t.chance*100)+'% 概率二次释放本回合放过的法宝（每件独立）</div>';
-        } else if(t.type==='applyStatusOnHit'){
-          h+='<div class="t sub">· 命中时为目标附加【'+escapeHtml(t.status)+'】状态</div>';
-        } else if(t.type==='attackBonusOnStatus'){
-          h+='<div class="t sub">· 对处于【'+escapeHtml(t.status)+'】状态的目标，额外造成 '+Math.round(t.pct*100)+'% '+attrMap[t.pctOf]+'的'+(t.dmgType?escapeHtml(t.dmgType)+'系':'')+'伤害</div>';
-        } else if(t.type==='attackBonusOnHit'){
-          h+='<div class="t sub">· 造成伤害时，额外附带 '+Math.round(t.pct*100)+'% '+attrMap[t.pctOf]+'的'+(t.dmgType?escapeHtml(t.dmgType)+'系':'')+'伤害（无状态限制）</div>';
-        } else {
-          h+='<div class="t sub">· 未知特质类型：'+(t.type||'')+'</div>';
-        }
-      }
-    }
-    if(!gs.length && !tr.length) h+='<div class="t" style="color:#c0392b">该流派公式未定义任何增益或特质。</div>';
-    return h;
-  }
-  function renderDmgSchoolHead(){
-    const head=$('dmgSchoolHead'); if(!head) return;
-    const sc=curSchool();
-    const box=$('dmgSchoolRules');
-    if(!sc){ head.style.display='none'; if(box) box.style.display='none'; return; }
-    head.style.display='';
-    head.innerHTML='流派：<b>'+escapeHtml(sc.name)+'</b>'+(sc.group?('　<span class="muted">['+escapeHtml(sc.group)+'组]</span>'):'');
-    if(box){
-      box.style.display='';
-      if(sc.rule){ box.innerHTML=describeRule(sc.rule, sc.desc); }
-      else { box.innerHTML='<div class="t" style="color:#c0392b">该流派伤害公式尚未实现，暂不支持计算。</div>'; }
-    }
-  }
-  function schoolNameExists(name, exceptId, group){
-    const n=(name||'').trim();
-    return Object.values(DMG_SCHOOLS).some(s=>s.id!==exceptId && (s.name||'').trim()===n && (group? s.group===group : true));
-  }
-  function commitSchoolName(sc, raw){
-    const n=(raw||'').trim().slice(0,12);
-    if(!n){ alert('流派名称不可为空。'); return false; }
-    if(schoolNameExists(n, sc.id, sc.group)){ alert('流派名称「'+n+'」在本组别已存在，不可重复。'); return false; }
-    sc.name=n; saveStoredSchools(); renderDmgSchoolSel(); renderDmgSchoolHead();
-    return true;
-  }
-  /* 导入流派公式：obj 需含 name 与 rule{gains,traits}；可选 group/id/desc/skills（法宝名→skill）。
-     同 group + 同 name 已存在则覆盖更新，否则新建。 */
-  function importSchoolDef(obj){
-    if(!obj || typeof obj!=='object' || Array.isArray(obj)) throw new Error('格式错误：顶层应为对象');
-    const name=(obj.name||'').trim();
-    if(!name) throw new Error('缺少 name（流派显示名）');
-    if(!obj.rule || typeof obj.rule!=='object') throw new Error('缺少 rule（公式规则对象）');
-    const rule=obj.rule;
-    if(!rule.gains || typeof rule.gains!=='object' || Array.isArray(rule.gains)) throw new Error('rule.gains 应为对象（增益通道定义）');
-    if(!Array.isArray(rule.traits)) throw new Error('rule.traits 应为数组');
-    for(const k in rule.gains){
-      const g=rule.gains[k];
-      if(typeof g!=='object') throw new Error('gains.'+k+' 应为对象');
-      if(typeof g.cap!=='number') throw new Error('gains.'+k+'.cap 应为数字（层数上限）');
-      if(g.boost && typeof g.boost!=='object') throw new Error('gains.'+k+'.boost 应为对象');
-    }
-    const TYPES=['reReleaseOnRoundEnd','applyStatusOnHit','attackBonusOnStatus','attackBonusOnHit'];
-    for(const t of rule.traits){
-      if(!t || typeof t!=='object') throw new Error('traits 元素应为对象');
-      if(!TYPES.includes(t.type)) throw new Error('未知特质类型：'+(t.type||'空')+'（仅支持 '+TYPES.join('/')+'）');
-      if(t.type==='reReleaseOnRoundEnd'){
-        if(!(t.gain in rule.gains)) throw new Error('reReleaseOnRoundEnd.gain「'+(t.gain||'')+'」不在 gains 中');
-        if(typeof t.atLeast!=='number'||typeof t.chance!=='number') throw new Error('reReleaseOnRoundEnd 需 atLeast/chance 数字');
-      } else if(t.type==='applyStatusOnHit'){
-        if(!t.status) throw new Error('applyStatusOnHit.status 必填');
-      } else if(t.type==='attackBonusOnStatus'){
-        if(!t.status) throw new Error('attackBonusOnStatus.status 必填');
-        if(!['atk','def','hp','shield'].includes(t.pctOf)) throw new Error('attackBonusOnStatus.pctOf 须为 atk/def/hp/shield');
-        if(typeof t.pct!=='number') throw new Error('attackBonusOnStatus.pct 应为数字');
-      } else if(t.type==='attackBonusOnHit'){
-        if(!['atk','def','hp','shield'].includes(t.pctOf)) throw new Error('attackBonusOnHit.pctOf 须为 atk/def/hp/shield');
-        if(typeof t.pct!=='number') throw new Error('attackBonusOnHit.pct 应为数字');
-      }
-    }
-    let skills=null;
-    if(obj.skills && typeof obj.skills==='object' && !Array.isArray(obj.skills)){
-      skills={}; for(const k in obj.skills) skills[k]=normalizeSkill(obj.skills[k]);
-    }
-    const group=(obj.group&&String(obj.group).trim())? String(obj.group).trim() : ($('dmgGroup').value||'体');
-    let sid=null;
-    for(const id in DMG_SCHOOLS){ const s=DMG_SCHOOLS[id]; if(s.group===group && (s.name||'').trim()===name){ sid=id; break; } }
-    if(!sid){
-      let wantId=(obj.id&&String(obj.id).trim())? String(obj.id).trim() : null;
-      if(wantId && DMG_SCHOOLS[wantId] && DMG_SCHOOLS[wantId].group!==group) wantId=null; // 避免误覆盖其它组别
-      sid = wantId || ('usr_'+Date.now().toString(36));
-    }
-    DMG_SCHOOLS[sid]={ id:sid, name, group, rule, skills:skills, desc:(obj.desc||''), builtin:false };
-    saveStoredSchools();
-    return sid;
-  }
-  function startEditSchoolName(){
-    const sc=curSchool(); if(!sc) return;
-    const head=$('dmgSchoolHead'); if(!head) return;
-    const inp=document.createElement('input');
-    inp.type='text'; inp.value=sc.name; inp.maxLength=12; inp.className='sk-name-input';
-    head.innerHTML=''; head.appendChild(document.createTextNode('流派：'));
-    const b=document.createElement('b'); b.appendChild(inp); head.appendChild(b);
-    inp.focus(); inp.select();
-    let done=false;
-    const finish=(ok)=>{ if(done) return; done=true; if(ok) commitSchoolName(sc, inp.value); renderDmgSchoolHead(); };
-    inp.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); finish(true); } else if(e.key==='Escape'){ e.preventDefault(); finish(false); } });
-    inp.addEventListener('blur',()=>finish(true));
-  }
-  function renderDmgSchoolSel(){
-    const s=$('dmgSchool'); if(!s) return;
-    s.innerHTML='';
-    const ph=document.createElement('option'); ph.value=''; ph.textContent='请选择流派'; s.appendChild(ph);
-    const gid=$('dmgGroup').value;
-    Object.values(DMG_SCHOOLS).filter(sc=>sc.group===gid).forEach(sc=>{
-      const o=document.createElement('option'); o.value=sc.id; o.textContent=sc.name+(sc.rule?'':'（暂不支持）'); s.appendChild(o);
-    });
-    s.value = (dmgSchool && DMG_SCHOOLS[dmgSchool] && DMG_SCHOOLS[dmgSchool].group===gid)? dmgSchool : '';
-  }
-  function renderDmgSchoolArea(){
-    const box=$('dmgSchoolBox'); if(!box) return;
-    const gid=$('dmgGroup').value;
-    const sc=curSchool();
-    if(sc && sc.group!==gid){ dmgSchool=''; }
-    box.style.display='';
-    renderDmgSchoolSel();
-    const sc2=curSchool();
-    $('dmgSchoolEdit').disabled = !sc2;
-    renderDmgSchoolHead();
-  }
-  function renderDmgGroupSel(){
-    const s=$('dmgGroup'); if(!s) return;
-    const cur=s.value;
-    s.innerHTML='';
-    groups.forEach(g=>{ const o=document.createElement('option'); o.value=g.id; o.textContent=g.name; s.appendChild(o); });
-    if(groups.length===0){ s.innerHTML='<option value="">（暂无组别）</option>'; return; }
-    if([...s.options].some(o=>o.value===cur)) s.value=cur; else s.value=groups[0].id;
-  }
-  function skillTag(t){
-    const sk=effSkill(t);
-    if(!sk) return '<span class="tag bad">无技能参数</span>';
-    if(!sk.on) return '<span class="tag mute">不参与输出</span>';
-    if(!skillHasContent(sk)) return '<span class="tag bad">系数待填</span>';
-    let s='每'+(sk.every>1?sk.every+'回合':'回合');
-    if(sk.from>1) s+='·第'+sk.from+'回合起';
-    return '<span class="tag">'+s+'</span>';
-  }
-  function renderDmgOrder(){
-    const box=$('dmgOrder'); if(!box) return;
-    box.innerHTML='';
-    if(dmgOrder.length===0){ box.innerHTML='<div class="empty-note">序列为空。点「从宝鉴读取」把体系法宝按数量展开成释放顺序。</div>'; return; }
-    dmgOrder.forEach((o,i)=>{
-      const t=library.find(x=>x.id===o.id);
-      const d=document.createElement('div');
-      d.className='ord-item'; d.draggable=true; d.dataset.i=i;
-      d.innerHTML='<span class="no">'+(i+1)+'</span><span class="nmx">'+escapeHtml(o.name)+'</span>'+
-        (t?skillTag(t):'<span class="tag bad">已从宝鉴移除</span>')+
-        '<button class="mv up-b" title="上移">▲</button><button class="mv dn-b" title="下移">▼</button>';
-      d.querySelector('.up-b').onclick=ev=>{ ev.stopPropagation(); if(i>0){ const a=dmgOrder.splice(i,1)[0]; dmgOrder.splice(i-1,0,a); renderDmgOrder(); } };
-      d.querySelector('.dn-b').onclick=ev=>{ ev.stopPropagation(); if(i<dmgOrder.length-1){ const a=dmgOrder.splice(i,1)[0]; dmgOrder.splice(i+1,0,a); renderDmgOrder(); } };
-      d.ondragstart=ev=>{ ev.dataTransfer.setData('text/plain',String(i)); d.classList.add('dragging'); };
-      d.ondragend=()=>{ d.classList.remove('dragging'); box.querySelectorAll('.ord-item').forEach(x=>x.classList.remove('over')); };
-      d.ondragover=ev=>{ ev.preventDefault(); d.classList.add('over'); };
-      d.ondragleave=()=>d.classList.remove('over');
-      d.ondrop=ev=>{ ev.preventDefault(); d.classList.remove('over');
-        const from=parseInt(ev.dataTransfer.getData('text/plain')); const to=i;
-        if(isNaN(from)||from===to) return;
-        const a=dmgOrder.splice(from,1)[0]; dmgOrder.splice(to,0,a); renderDmgOrder(); };
-      box.appendChild(d);
-    });
-    const bad=dmgOrder.filter(o=>{ const t=library.find(x=>x.id===o.id); const sk=t?effSkill(t):null; return !sk||!sk.on||!skillHasContent(sk); }).length;
-    $('dmgOrderInfo').innerHTML='序列共 <b>'+dmgOrder.length+'</b> 件法宝'+
-      (bad? ' · <span style="color:#c0392b">其中 '+bad+' 件无有效输出参数（只占顺序位）</span>' : ' · 全部具备输出参数');
-  }
-  // 展开为引擎单元：同名法宝按出现次序编号，便于「按名聚合、可展开到每件」的归因
-  function dmgUnits(){
-    const seen={}; const sc=curSchool();
-    return dmgOrder.map(o=>{
-      const t=library.find(x=>x.id===o.id);
-      seen[o.name]=(seen[o.name]||0)+1;
-      return { name:o.name, label:o.name+' #'+seen[o.name], skill: t? resolveSkill(sc,t): null };
-    });
-  }
-  function loadDmgOrder(silent){
-    const gid=$('dmgGroup').value;
-    if(!schoolSupported()){
-      dmgOrder=[]; renderDmgOrder();
-      const sc=curSchool();
-      const tip = sc? ('当前流派「'+escapeHtml(sc.name)+'」暂不支持计算') : '请先选择流派';
-      $('dmgMsg').innerHTML='<span style="color:#c0392b">'+tip+'</span>';
-      $('dmgOverview').innerHTML='';
-      const hasAny = Object.values(DMG_SCHOOLS).some(s=>s.group===gid);
-      if(!silent) $('dmgOut').innerHTML='<div class="dmg-warn">'+(sc? ('当前流派「'+escapeHtml(sc.name)+'」的伤害公式尚未实现，暂不支持计算。') :
-        (hasAny? '请先在上方「流派」处选择流派，再「从宝鉴读取」。' : '当前组别「'+escapeHtml(gid||'未选择')+'」暂无流派，可点击下方「导入流派公式」新增。'))+'</div>';
-      return;
-    }
-    dmgOrder=[];
-    library.forEach(t=>{
-      if(t.group!==gid) return;
-      const s=sel[t.id]; if(!s||!s.include) return;
-      const n=Math.max(0,s.count||0);
-      for(let k=0;k<n;k++) dmgOrder.push({ id:t.id, name:t.name });
-    });
-    renderDmgOrder();
-    $('dmgOverview').innerHTML='';
-    $('dmgOut').innerHTML='';
-    if(!silent) $('dmgMsg').textContent = dmgOrder.length? ('已从宝鉴读取 '+dmgOrder.length+' 件（按数量展开）。') : '当前组别下没有「已启用且数量>0」的法宝。';
-  }
-  function runDmg(){
-    const gid=$('dmgGroup').value;
-    if(!schoolSupported()){ $('dmgMsg').innerHTML='<span style="color:#c0392b">请先选择流派</span>'; loadDmgOrder(); return; }
-    const _sc0=curSchool();
-    if(!schoolSupported()){ $('dmgMsg').innerHTML='<span style="color:#c0392b">'+(_sc0?('当前流派「'+escapeHtml(_sc0.name)+'」暂不支持计算'):'请先选择流派')+'</span>'; return; }
-    if(dmgOrder.length===0){ $('dmgMsg').innerHTML='<span style="color:#c0392b">释放序列为空，请先点「从宝鉴读取」。</span>'; return; }
-    const B={ atk:Number($('dmgAtk').value)||0, def:Number($('dmgDef').value)||0, hp:Number($('dmgHp').value)||0 };
-    const rounds=Math.min(30,Math.max(1,parseInt($('dmgRounds').value)||10));
-    $('dmgRounds').value=rounds;
-    const units=dmgUnits();
-    const exp=dmgSimulate(units,B,rounds,'exp',_sc0.rule);
-    const max=dmgSimulate(units,B,rounds,'max',_sc0.rule);
-    const cur={ order:dmgOrder.map(o=>o.name), rounds, B, exp, max, ts:Date.now() };
-    const prev = dmgBase || dmgLast;
-    renderDmgOut(cur, prev, !!dmgBase);
-    dmgLast=cur;
-    $('dmgMsg').textContent='计算完成（'+rounds+' 回合 · '+units.length+' 件法宝）。';
-  }
-  /* 求最优顺序：随机重启爬山，限时搜索期望伤害最高的排列 */
-  function bestDmgOrder(){
-    const gid=$('dmgGroup').value;
-    if(!schoolSupported()){ $('dmgMsg').innerHTML='<span style="color:#c0392b">请先选择流派</span>'; loadDmgOrder(); return; }
-    const _sc1=curSchool();
-    if(!schoolSupported()){ $('dmgMsg').innerHTML='<span style="color:#c0392b">'+(_sc1?('当前流派「'+escapeHtml(_sc1.name)+'」暂不支持计算'):'请先选择流派')+'</span>'; return; }
-    if(dmgOrder.length<2){ $('dmgMsg').textContent='序列不足 2 件，无需排序。'; return; }
-    const B={ atk:Number($('dmgAtk').value)||0, def:Number($('dmgDef').value)||0, hp:Number($('dmgHp').value)||0 };
-    const rounds=Math.min(30,Math.max(1,parseInt($('dmgRounds').value)||10));
-    $('dmgMsg').textContent='⏳ 正在搜索最优释放顺序…';
-    $('dmgBest').disabled=true;
-    setTimeout(()=>{
-      const base=dmgOrder.slice();
-      const skOf={}; base.forEach(o=>{ if(!(o.id in skOf)){ const t=library.find(x=>x.id===o.id); skOf[o.id]=t?resolveSkill(curSchool(),t):null; } });
-      const evalArr=arr=>dmgSimulate(arr.map(o=>({name:o.name,label:o.name,skill:skOf[o.id]})),B,rounds,'exp',curSchool().rule).total;
-      const t0=performance.now(), BUDGET=1600;
-      let gBest=base.slice(), gTot=evalArr(gBest);
-      const shuffle=a=>{ a=a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); const x=a[i]; a[i]=a[j]; a[j]=x; } return a; };
-      let restart=0;
-      while(performance.now()-t0<BUDGET){
-        let cur = restart===0 ? base.slice() : shuffle(base);
-        let cv=evalArr(cur); restart++;
-        for(let it=0; it<1200 && performance.now()-t0<BUDGET; it++){
-          const i=Math.floor(Math.random()*cur.length), j=Math.floor(Math.random()*cur.length);
-          if(i===j) continue;
-          const nb=cur.slice(); const x=nb[i]; nb[i]=nb[j]; nb[j]=x;
-          const v=evalArr(nb);
-          if(v>cv){ cv=v; cur=nb; }
-        }
-        if(cv>gTot){ gTot=cv; gBest=cur; }
-      }
-      const before=evalArr(base);
-      dmgOrder=gBest; renderDmgOrder();
-      $('dmgBest').disabled=false;
-      const gain=gTot-before;
-      $('dmgMsg').innerHTML='已找到最优顺序（试探 '+restart+' 轮）：期望总伤 '+dmgFmt(gTot)+
-        (gain>0.5? ' · 较原顺序 <span class="up">+'+dmgFmt(gain)+'（+'+((gTot/before-1)*100).toFixed(1)+'%）</span>' : ' · 与原顺序持平')+
-        '，点「计算伤害」查看明细。';
-    },30);
-  }
-
-  /* ---------- 结果渲染：每回合明细 + 归因占比 + 与基准对比 ---------- */
-  function renderDmgOut(cur, prev, isLocked){
-    const box=$('dmgOut'); if(!box) return;
-    const E=cur.exp, M=cur.max, R=cur.rounds;
-    const pe = prev? prev.exp : null;
-    const names=Object.keys(E.byName);
-    const kinds=new Set(cur.order).size;
-    let peak=E.per[0]||{round:0,total:0};
-    E.per.forEach(p=>{ if(p.total>peak.total) peak=p; });
-
-    /* --- 总览（放到计算按钮下方空白处） --- */
-    const ov=$('dmgOverview');
-    if(ov){
-      let o='';
-      o+='<div class="dmg-sec"><h3>总览'+(prev? ' <span class="cap" style="margin:0;font-weight:400">· 对比'+(isLocked?'锁定基准':'上一次计算')+'</span>':'')+'</h3><div class="dmg-cards">';
-      o+='<div class="st"><div class="k">期望总伤（'+R+' 回合）</div><div class="v">'+dmgFmt(E.total)+'</div><div class="d">'+(pe? (deltaSpan(E.total,pe.total)+' · '+deltaPct(E.total,pe.total)) : '首次计算，暂无对比')+'</div></div>';
-      o+='<div class="st"><div class="k">极限总伤（二次释放全触发）</div><div class="v">'+dmgFmt(M.total)+'</div><div class="d">'+(prev? (deltaSpan(M.total,prev.max.total)+' · '+deltaPct(M.total,prev.max.total)) : '—')+'</div></div>';
-      o+='<div class="st"><div class="k">平均每回合（期望）</div><div class="v">'+dmgFmt(E.total/R)+'</div><div class="d">峰值第 '+peak.round+' 回合：'+dmgFmt(peak.total)+'</div></div>';
-      o+='<div class="st"><div class="k">释放序列</div><div class="v">'+cur.order.length+' 件</div><div class="d">'+kinds+' 种法宝，其中 '+names.length+' 种产生输出</div></div>';
-      o+='</div></div>';
-      ov.innerHTML=o;
-    }
-
-    let h='';
-    /* --- 每回合明细 --- */
-    h+='<div class="dmg-sec"><h3>每回合伤害<span class="cap" style="margin:0 0 0 8px;font-weight:400">点击任意行展开该回合逐法宝明细</span></h3>'+
-       '<table class="dmg-table"><thead><tr><th>回合</th><th>常规伤害</th><th>二次释放(期望)</th><th>回合合计</th><th>累计</th><th>占全程</th></tr></thead><tbody>';
-    let cum=0;
-    E.per.forEach(p=>{
-      cum+=p.total;
-      h+='<tr class="rd" data-r="'+p.round+'"><td>▸ 第 '+p.round+' 回合</td><td>'+dmgFmt(p.normal)+'</td><td>'+dmgFmt(p.re)+'</td>'+
-         '<td><b>'+dmgFmt(p.total)+'</b></td><td>'+dmgFmt(cum)+'</td><td>'+(E.total? (p.total/E.total*100).toFixed(1):'0.0')+'%</td></tr>';
-      const rs=Object.keys(p.rows).map(n=>({n,v:p.rows[n]})).sort((a,b)=>(b.v.normal+b.v.re)-(a.v.normal+a.v.re));
-      let sub='';
-      if(rs.length===0) sub='<div class="cap" style="margin:2px 0">本回合无直接输出（仅叠加增益／护盾）。</div>';
-      rs.forEach(x=>{
-        const tt=x.v.normal+x.v.re, pc=p.total? tt/p.total*100:0;
-        sub+='<div class="share-row"><span class="lb">'+escapeHtml(x.n)+'</span><span class="bar"><i style="width:'+pc.toFixed(1)+'%"></i></span>'+
-             '<span class="pc">'+dmgFmt(tt)+' · '+pc.toFixed(1)+'%</span></div>';
-        const ins=Object.keys(x.v.inst);
-        if(ins.length>1) ins.forEach(lb=>{
-          const iv=x.v.inst[lb], it=iv.normal+iv.re, ip=p.total? it/p.total*100:0;
-          sub+='<div class="share-row" style="padding-left:18px;color:var(--muted)"><span class="lb">'+escapeHtml(lb)+'</span>'+
-               '<span class="bar"><i style="width:'+ip.toFixed(1)+'%;background:#c4b5fd"></i></span>'+
-               '<span class="pc">'+dmgFmt(it)+' · '+ip.toFixed(1)+'%</span></div>';
-        });
-      });
-      const _sc=curSchool(); const _g=_sc?_sc.rule.gains:null;
-      let stLine = _g? Object.keys(_g).map(k=>escapeHtml(_g[k].label||k)+' '+p.state[k]).join(' · ') : '';
-      stLine += (_g? ' · ' : '') + '累积护盾 '+dmgFmt(p.state.shield);
-      sub+='<div class="cap" style="margin:5px 0 0">回合末层数：'+stLine+'</div>';
-      h+='<tr class="sub" data-sub="'+p.round+'" style="display:none"><td colspan="6">'+sub+'</td></tr>';
-    });
-    h+='<tr class="sumrow"><td>合计</td><td>'+dmgFmt(E.per.reduce((a,p)=>a+p.normal,0))+'</td><td>'+dmgFmt(E.per.reduce((a,p)=>a+p.re,0))+
-       '</td><td>'+dmgFmt(E.total)+'</td><td>'+dmgFmt(E.total)+'</td><td>100.0%</td></tr>';
-    h+='</tbody></table></div>';
-
-    /* --- 全局占比 --- */
-    const arr=names.map(n=>({ n, normal:E.byName[n].normal, re:E.byName[n].re, v:E.byName[n].normal+E.byName[n].re })).sort((a,b)=>b.v-a.v);
-    h+='<div class="dmg-sec"><h3>全局伤害占比</h3>';
-    arr.forEach(x=>{ const pc=E.total? x.v/E.total*100:0;
-      h+='<div class="share-row"><span class="lb">'+escapeHtml(x.n)+'</span><span class="bar"><i style="width:'+pc.toFixed(1)+'%"></i></span>'+
-         '<span class="pc">'+dmgFmt(x.v)+' · '+pc.toFixed(1)+'%</span></div>'; });
-    h+='<table class="dmg-table" style="margin-top:10px"><thead><tr><th>法宝</th><th>常规</th><th>二次释放</th><th>合计</th><th>全局占比</th>'+
-       (pe? '<th>伤害变化</th><th>占比变化</th>':'')+'</tr></thead><tbody>';
-    arr.forEach(x=>{
-      const pc=E.total? x.v/E.total*100:0; let cmp='';
-      if(pe){
-        const po=pe.byName[x.n]; const pv=po? po.normal+po.re : 0;
-        const ppc=pe.total? pv/pe.total*100:0, dp=pc-ppc;
-        cmp='<td>'+deltaSpan(x.v,pv)+'</td><td>'+(Math.abs(dp)<0.05? '<span class="flat">±0.0pp</span>' :
-            '<span class="'+(dp>0?'up':'down')+'">'+(dp>0?'+':'')+dp.toFixed(1)+'pp</span>')+'</td>';
-      }
-      h+='<tr><td>'+escapeHtml(x.n)+'</td><td>'+dmgFmt(x.normal)+'</td><td>'+dmgFmt(x.re)+'</td><td><b>'+dmgFmt(x.v)+'</b></td><td>'+pc.toFixed(1)+'%</td>'+cmp+'</tr>';
-    });
-    if(pe) Object.keys(pe.byName).filter(n=>!E.byName[n]).forEach(n=>{
-      const pv=pe.byName[n].normal+pe.byName[n].re, ppc=pe.total? pv/pe.total*100:0;
-      h+='<tr><td>'+escapeHtml(n)+'</td><td colspan="3" style="text-align:left;color:var(--muted)">本次未参与</td><td>0.0%</td>'+
-         '<td>'+deltaSpan(0,pv)+'</td><td><span class="down">-'+ppc.toFixed(1)+'pp</span></td></tr>';
-    });
-    h+='</tbody></table>';
-    /* 展开到每一件 */
-    const insts=Object.keys(E.byInst).map(lb=>({ lb, name:E.byInst[lb].name, v:E.byInst[lb].normal+E.byInst[lb].re })).sort((a,b)=>b.v-a.v);
-    if(insts.length){
-      h+='<details style="margin-top:9px"><summary style="cursor:pointer;font-size:12.5px;color:var(--accent-d)">展开到每一件（同名法宝因释放位置不同，贡献也不同）</summary>'+
-         '<table class="dmg-table" style="margin-top:6px"><thead><tr><th>实例</th><th>合计伤害</th><th>全局占比</th>'+(pe?'<th>对比变化</th>':'')+'</tr></thead><tbody>';
-      insts.forEach(x=>{
-        const pc=E.total? x.v/E.total*100:0; let cmp='';
-        if(pe){ const po=pe.byInst[x.lb]; const pv=po? po.normal+po.re:0; cmp='<td>'+deltaSpan(x.v,pv)+'</td>'; }
-        h+='<tr><td>'+escapeHtml(x.lb)+'</td><td>'+dmgFmt(x.v)+'</td><td>'+pc.toFixed(1)+'%</td>'+cmp+'</tr>';
-      });
-      h+='</tbody></table></details>';
-    }
-    h+='</div>';
-
-    /* --- 顺序对比 --- */
-    if(prev){
-      const same = prev.order.length===cur.order.length && prev.order.every((n,i)=>n===cur.order[i]);
-      h+='<div class="dmg-sec"><h3>顺序对比</h3>';
-      h+='<div class="cap" style="margin:2px 0"><b>基准</b>（'+(isLocked?'锁定基准':'上一次')+'，'+prev.rounds+' 回合 · 期望 '+dmgFmt(prev.exp.total)+'）：'+
-         prev.order.map((n,i)=>(i+1)+'.'+n).join(' → ')+'</div>';
-      h+='<div class="cap" style="margin:2px 0"><b>本次</b>（'+R+' 回合 · 期望 '+dmgFmt(E.total)+'）：'+
-         cur.order.map((n,i)=>(i+1)+'.'+n).join(' → ')+'</div>';
-      h+='<div class="cap" style="margin:6px 0 0">'+(same? '两次释放顺序完全一致。' :
-         '顺序已变更 → 期望总伤 '+deltaSpan(E.total,pe.total)+'（'+deltaPct(E.total,pe.total)+'）， 极限总伤 '+deltaSpan(M.total,prev.max.total)+'。')+'</div>';
-      h+='</div>';
-    }
-
-    /* --- 无输出法宝提示 --- */
-    const noOut=[...new Set(cur.order)].filter(n=>!E.byName[n]);
-    if(noOut.length) h+='<div class="dmg-warn">以下法宝在本次计算中未产生伤害：<b>'+noOut.map(escapeHtml).join('、')+
-      '</b>。可能是「不参与输出计算」（如九宫牌／灵兽肉），或技能系数尚未在「详情」里录入。它们仍会正常提供护盾与增益。</div>';
-
-    box.innerHTML=h;
-    box.querySelectorAll('tr.rd').forEach(tr=>tr.onclick=()=>{
-      const r=tr.dataset.r; const s=box.querySelector('tr.sub[data-sub="'+r+'"]');
-      if(!s) return;
-      const open = s.style.display!=='none';
-      s.style.display = open? 'none':'table-row';
-      tr.firstElementChild.textContent = (open?'▸':'▾')+' 第 '+r+' 回合';
-    });
-  }
 
   /* ---------- 一键生成（多批次 + 跨批全局最优合并） ---------- */
   let poolGlobal=[], sigGlobal=new Set(), lastBestW=0, batchSeedBase=20260721, lastRecord=false;
   function sigOfPlan(p){ return p.placements.map(pl=>pl.name+':'+pl.cells.map(c=>c.join(',')).join(';')).sort().join('|'); }
   function buildPieces(){
     const chosen=library.filter(t=>{ const s=sel[t.id]; return s&&s.include&&(s.count||0)>0; });
-    return chosen.map(t=>{ const s=sel[t.id]; return { name:t.id, cells:t.cells, count:s.count, priority:s.priority, hp:t.base&&t.base.hp||0, def:t.base&&t.base.def||0, atk:t.base&&t.base.atk||0, bonusRate:t.bonusRate||0, bonusType:t.bonusType||'none', bonusAttr:t.bonusAttr||'hp', group:t.group||null }; });
+    return chosen.map(t=>{ const s=sel[t.id]; return { name:t.id, cells:t.cells, count:s.count, priority:s.priority, key:t.key, hp:t.base&&t.base.hp||0, def:t.base&&t.base.def||0, atk:t.base&&t.base.atk||0, bonusRate:t.bonusRate||0, bonusType:t.bonusType||'none', bonusAttr:t.bonusAttr||'hp', group:t.group||null }; });
   }
   function doSolve(seed, accumulate){
     const chosen=library.filter(t=>{ const s=sel[t.id]; return s&&s.include&&(s.count||0)>0; });
     if(chosen.length===0){ return {empty:true}; }
     const pieces=buildPieces();
     const backpack={ rows:bagRows(), cols:bagCols(), blocked:[...bagBlocked] };
-    const plans=PackCore.generatePlans(backpack,pieces,{seed,runsPerStrategy:500,timeLimitMs:1500});
+    const weights=readWeights();
+    const plans=PackCore.generatePlans(backpack,pieces,{seed,runsPerStrategy:500,timeLimitMs:1500,weights});
     if(!accumulate){ poolGlobal=[]; sigGlobal=new Set(); lastBestW=0; }
     for(const p of plans){ const sg=sigOfPlan(p); if(!sigGlobal.has(sg)){ sigGlobal.add(sg); poolGlobal.push(p); } }
-    const weights=readWeights();
     poolGlobal.forEach(p=>{ if(p.weighted==null) p.weighted=weightedScore(p.totals,weights); });
     const bestNow=poolGlobal.reduce((m,p)=>Math.max(m,p.weighted||0),0);
     let record=false; if(accumulate && bestNow>lastBestW+1e-6) record=true; lastBestW=Math.max(lastBestW,bestNow);
@@ -2362,7 +1608,38 @@
     if(msg){ msg.textContent = (Math.round(rawSum)===100)?'权重合计 100 ✓（按此加权）':'权重合计 '+Math.round(rawSum)+'，已自动按比例归一化'; }
     return w;
   }
-  function weightedScore(totals,w){ return totals.hp*(w.hp/100)+totals.def*(w.def/100)+totals.atk*(w.atk/100); }
+  function weightedScore(totals,w){ return totals.hp*(w.hp/100) + totals.atk*w.atk + totals.def*w.def; }
+
+  /* —— 方案网格渲染：沿用原小格子，仅给每件法宝加粗边缘线 + 内部左上角编号 —— */
+  function renderPieceGrid(plan,R,C,cellSize,colorById){
+    const total=R*C;
+    const cellPiece=new Int16Array(total); cellPiece.fill(-1);
+    plan.placements.forEach((p,pi)=>{
+      p.cells.forEach(([r,c])=>{ const idx=r*C+c; cellPiece[idx]=pi; });
+    });
+    // 关键：所有格子统一 border-box + 固定尺寸 + 零 gap + 零 margin
+    // → 行列轨道尺寸完全一致，不会出现整行横线或错位；分隔只靠边框，不占布局空间
+    const sz='box-sizing:border-box;width:'+cellSize+'px;height:'+cellSize+'px';
+    let h='<div class="grid pg-grid" style="grid-template-columns:repeat('+C+','+cellSize+'px);gap:0">';
+    for(let r=0;r<R;r++) for(let c=0;c<C;c++){
+      const idx=r*C+c;
+      if(bagBlocked.has(idx)){ h+='<div class="cell blocked" style="'+sz+'"></div>'; continue; }
+      const pi=cellPiece[idx];
+      if(pi<0){ h+='<div class="cell" style="'+sz+'"></div>'; continue; }
+      const p=plan.placements[pi];
+      const color=colorById[p.name]||'#ccc';
+      // 仅在不同件/空/边界处画外缘线
+      const bt=(r===0||cellPiece[idx-C]!==pi), bb=(r===R-1||cellPiece[idx+C]!==pi);
+      const bl=(c===0||cellPiece[idx-1]!==pi), br=(c===C-1||cellPiece[idx+1]!==pi);
+      let bc=''; if(bt)bc+=' pg-bt'; if(bb)bc+=' pg-bb'; if(bl)bc+=' pg-bl'; if(br)bc+=' pg-br';
+      // 只有「两条相邻边都是外缘」的角才圆角，内部角一律直角 → 同件无缝、外缘规整
+      const rTL=(bt&&bl)?3:0, rTR=(bt&&br)?3:0, rBR=(bb&&br)?3:0, rBL=(bb&&bl)?3:0;
+      const rad='border-radius:'+rTL+'px '+rTR+'px '+rBR+'px '+rBL+'px;';
+      h+='<div class="cell pg-cell2'+bc+'" style="'+sz+';background:'+color+';'+rad+'"></div>';
+    }
+    h+='</div>';
+    return h;
+  }
 
   function renderPlans(plans,backpack,ms){
     lastPlans=plans; lastBackpack=backpack; lastMs=ms;
@@ -2374,13 +1651,14 @@
     plans.forEach(p=>{ const a=computeAttributes(p,libMap,R,C); p.totals=a.totals; p.perAttrs=a.per; p.weighted=weightedScore(a.totals,weights); });
     const mode=$('sortMode')?$('sortMode').value:'attr';
     const sorted=plans.slice();
-    if(mode==='score') sorted.sort((a,b)=>b.score-a.score||b.fill-a.fill);
-    else if(mode==='fill') sorted.sort((a,b)=>b.fill-a.fill||b.score-a.score);
-    else sorted.sort((a,b)=>b.weighted-a.weighted);  // attr / 默认：按属性总分
+    if(mode==='score') sorted.sort((a,b)=>b.score-a.score||(b.keyContact-a.keyContact)||b.fill-a.fill);
+    else if(mode==='fill') sorted.sort((a,b)=>b.fill-a.fill||(b.keyContact-a.keyContact)||b.score-a.score);
+    else sorted.sort((a,b)=>b.weighted-a.weighted||(b.keyContact-a.keyContact));  // attr / 默认：按属性总分；同分下优先 1 格法宝贴重点法宝更多
     const hasPrio=library.some(t=>sel[t.id]&&sel[t.id].priority);
+    const hasOneCell=library.some(t=>sel[t.id]&&(sel[t.id].count||0)>0&&t.cells.length===1);
     const needN=hasPrio?5:10;
     const view=sorted.slice(0,needN);
-    const usedOf={}; library.forEach(t=>usedOf[t.id]=0); view.forEach(p=>p.placements.forEach(pl=>{ if(usedOf[pl.name]!=null) usedOf[pl.name]++; }));
+    // 注意：usedOf 在每个方案卡片内部单独计算（按单方案统计），不跨方案累加
     const top0=sorted.length?sorted[0]:null;
     const bestFill=top0?top0.bestFill:0, cap=top0?top0.capacity:0;
     const scoreNote=(hasPrio&&top0)?' · 最高相邻法宝数 '+top0.score:'';
@@ -2396,6 +1674,7 @@
       stat('攻击力', top0?fmt(top0.totals.atk):'-') +
       stat('属性评分', (mode==='attr'&&top0)?Math.round(top0.weighted):'-') +
       stat('相邻法宝数', (hasPrio&&top0)?top0.score:'-') +
+      stat('1格贴重点', (hasOneCell&&top0)?top0.keyContact:'-') +
       stat('已用格子', top0?top0.filled+'/'+top0.capacity:'-') +
       stat('已放物品', top0?top0.placements.length:'-') +
       stat('搜索耗时', ms+'ms') +
@@ -2406,27 +1685,31 @@
       const plan=view[i];
       wrap.querySelectorAll('.plan-card').forEach(c=>c.classList.remove('selected'));
       const card=wrap.querySelector('.plan-card[data-idx="'+i+'"]'); if(card) card.classList.add('selected');
+      // 详情面板也用单方案统计
+      const usedOf={}; library.forEach(t=>usedOf[t.id]=0);
+      plan.placements.forEach(pl=>{ if(usedOf[pl.name]!=null) usedOf[pl.name]++; });
       renderPlanDetail(plan,R,C,idName,usedOf,hasPrio);
     }
     view.forEach((plan,i)=>{
+      // 按当前方案单独统计每件法宝的摆放实例数（不跨方案累加）
+      const usedOf={}; library.forEach(t=>usedOf[t.id]=0);
+      plan.placements.forEach(pl=>{ if(usedOf[pl.name]!=null) usedOf[pl.name]++; });
       const card=document.createElement('div'); card.className='plan-card';
       const rate=(plan.capacity?plan.filled/plan.capacity*100:0);
       const ratePill='<span class="pill '+(rate>=99?'ok':'warn')+'">填充率 '+rate.toFixed(1)+'%</span>';
       const fullPill=plan.filled===plan.capacity?'<span class="pill ok">满填充</span>':'<span class="pill warn">填充 '+plan.filled+'/'+plan.capacity+'</span>';
       const scorePill=(hasPrio)?'<span class="pill" style="background:#3b82f6;color:#fff">相邻法宝 '+plan.score+'</span>':'';
+      const kcPill=(hasOneCell)?'<span class="pill" style="background:#0ea5a4;color:#fff">1格贴重点 '+plan.keyContact+'</span>':'';
       const wPill=(mode==='attr')?'<span class="pill" style="background:#7c3aed;color:#fff">属性评分 '+Math.round(plan.weighted)+'</span>':'';
       const t=plan.totals||{hp:0,def:0,atk:0};
       const attrLine='<div class="attr-line">生命 '+fmt(t.hp)+' · 防御 '+fmt(t.def)+' · 攻击 '+fmt(t.atk)+'</div>';
-      const colorAt={}; plan.placements.forEach(p=>p.cells.forEach(([r,c])=>{ colorAt[r*C+c]=colorById[p.name]; }));
-      let gridHtml='<div class="grid" style="grid-template-columns:repeat('+C+',24px);gap:3px">';
-      for(let r=0;r<R;r++) for(let c=0;c<C;c++){ const idx=r*C+c; if(bagBlocked.has(idx)) gridHtml+='<div class="cell blocked"></div>'; else if(colorAt[idx]!=null) gridHtml+='<div class="cell" style="background:'+colorAt[idx]+';border-color:rgba(0,0,0,.18)"></div>'; else gridHtml+='<div class="cell"></div>'; }
-      gridHtml+='</div>';
+      const gridHtml=renderPieceGrid(plan,R,C,24,colorById);
       let legHtml='<div class="legend">'; library.forEach(t2=>{ const u=usedOf[t2.id]; if(u>0){ const left=sel[t2.id].count-u; legHtml+='<div class="item"><span class="sw" style="background:'+t2.color+'"></span>'+escapeHtml(t2.name)+' <b>'+u+'/'+(sel[t2.id].count)+'</b>'+(left>0?' <span style="color:var(--warn)">(剩'+left+')</span>':'')+(sel[t2.id].priority?' <span style="color:var(--accent2)">★优先</span>':'')+'</div>'; } });
       const leftTre=library.filter(t2=>sel[t2.id]&&sel[t2.id].include&&(sel[t2.id].count-(usedOf[t2.id]||0))>0);
       if(leftTre.length){ legHtml+='<div class="item" style="color:var(--warn)">未放: '+leftTre.map(t2=>escapeHtml(t2.name)+'×'+(sel[t2.id].count-usedOf[t2.id])).join('、')+'</div>'; }
       legHtml+='</div>';
       const text=buildPlanText(plan,R,C,i+1,idName);
-      card.innerHTML='<h3>方案 '+(i+1)+' '+ratePill+' '+fullPill+' '+scorePill+' '+wPill+'</h3>'+gridHtml+legHtml+attrLine;
+      card.innerHTML='<h3>方案 '+(i+1)+' '+ratePill+' '+fullPill+' '+scorePill+' '+kcPill+' '+wPill+'</h3>'+gridHtml+legHtml+attrLine;
       const pre=document.createElement('pre'); pre.className='plan-text'; pre.textContent=text; pre.style.display='none';
       const btn=document.createElement('button'); btn.className='ghost'; btn.textContent='查看/复制文本';
       btn.onclick=(e)=>{ e.stopPropagation(); const show=pre.style.display!=='block'; pre.style.display=show?'block':'none'; if(show&&navigator.clipboard) navigator.clipboard.writeText(text); };
@@ -2442,10 +1725,7 @@
     const box=$('planDetail');
     if(!plan){ box.innerHTML='<div class="pd-empty">点击左侧任意方案，此处实时显示该方案的摆放与属性详情。</div>'; return; }
     const colorById={}; library.forEach(t=>colorById[t.id]=t.color);
-    const colorAt={}; plan.placements.forEach(p=>p.cells.forEach(([r,c])=>{ colorAt[r*C+c]=colorById[p.name]; }));
-    let gridHtml='<div class="grid" style="grid-template-columns:repeat('+C+',20px);gap:3px">';
-    for(let r=0;r<R;r++) for(let c=0;c<C;c++){ const idx=r*C+c; if(bagBlocked.has(idx)) gridHtml+='<div class="cell blocked"></div>'; else if(colorAt[idx]!=null) gridHtml+='<div class="cell" style="background:'+colorAt[idx]+';border-color:rgba(0,0,0,.18)"></div>'; else gridHtml+='<div class="cell"></div>'; }
-    gridHtml+='</div>';
+    const gridHtml=renderPieceGrid(plan,R,C,20,colorById);
     let legHtml='<div class="legend" style="margin-top:6px">';
     library.forEach(t=>{ const u=usedOf[t.id]; if(u>0){ const left=sel[t.id].count-u; legHtml+='<div class="item"><span class="sw" style="background:'+t.color+'"></span>'+escapeHtml(t.name)+' <b>'+u+'/'+(sel[t.id].count)+'</b>'+(left>0?' <span style="color:var(--warn)">(剩'+left+')</span>':'')+(sel[t.id].priority?' <span style="color:var(--accent2)">★优先</span>':'')+'</div>'; } });
     const leftTre=library.filter(t=>sel[t.id]&&sel[t.id].include&&(sel[t.id].count-(usedOf[t.id]||0))>0);
@@ -2464,7 +1744,8 @@
     tbl+='<tr class="pd-total"><td>合计</td><td></td><td>'+fmt(t.hp)+'</td><td>'+fmt(t.def)+'</td><td>'+fmt(t.atk)+'</td><td></td></tr>';
     tbl+='</tbody></table>';
     const text=buildPlanText(plan,R,C,1,idName);
-    box.innerHTML='<h4>方案详情 · 生命 '+fmt(t.hp)+' / 防御 '+fmt(t.def)+' / 攻击 '+fmt(t.atk)+(hasPrio?' · 相邻法宝 '+plan.score:'')+'</h4>'+gridHtml+legHtml+tbl;
+    const hasOneCell = library.some(t=>sel[t.id] && (sel[t.id].count||0)>0 && t.cells.length===1);
+    box.innerHTML='<h4>方案详情 · 生命 '+fmt(t.hp)+' / 防御 '+fmt(t.def)+' / 攻击 '+fmt(t.atk)+(hasPrio?' · 相邻法宝 '+plan.score:'')+(hasOneCell?' · 1格贴重点 '+plan.keyContact:'')+'</h4>'+gridHtml+legHtml+tbl;
     const btn=document.createElement('button'); btn.className='ghost pd-copy'; btn.textContent='复制方案文本';
     btn.onclick=(e)=>{ e.stopPropagation(); if(navigator.clipboard) navigator.clipboard.writeText(text); };
     box.appendChild(btn);
@@ -2507,98 +1788,9 @@
   } else if(libRestored){
     $('statusBox').textContent='📚 已从本地宝鉴库自动恢复 '+library.length+' 件法宝（勾选组别并填写数量后即可点「一键生成」）。';
   }
-  /* ---------- 伤害计算模块初始化 ---------- */
-  renderDmgGroupSel(); renderDmgSchoolArea();
-  $('dmgSchool').onchange=()=>{
-    dmgSchool=$('dmgSchool').value; dmgLast=null; dmgBase=null;
-    renderDmgSchoolArea(); loadDmgOrder();
-  };
-  $('dmgSchoolEdit').onclick=startEditSchoolName;
-  $('dmgGroup').onchange=()=>{ dmgLast=null; dmgBase=null; renderDmgSchoolArea(); loadDmgOrder(); };
-  $('dmgLoad').onclick=()=>loadDmgOrder();
-  $('dmgBest').onclick=bestDmgOrder;
-  $('dmgRun').onclick=runDmg;
-  $('dmgLock').onclick=()=>{
-    if(!dmgLast){ $('dmgMsg').textContent='请先计算一次，再锁定为基准。'; return; }
-    dmgBase=dmgLast;
-    $('dmgMsg').innerHTML='📌 已锁定当前结果为对比基准（期望总伤 '+dmgFmt(dmgBase.exp.total)+'），之后每次计算都与它比较。';
-  };
-  $('dmgClearBase').onclick=()=>{ dmgBase=null; $('dmgMsg').textContent='已清除锁定基准，之后每次计算与「上一次」比较。'; };
-  /* 导入流派公式 */
-  $('dmgImportSchool').onclick=()=>{
-    const ta=$('dmgSchoolJson'); const txt=ta.value.trim();
-    const msg=$('dmgImportMsg');
-    if(!txt){ msg.innerHTML='<span style="color:#c0392b">请先粘贴或选择 JSON</span>'; return; }
-    let obj; try{ obj=JSON.parse(txt); }catch(e){ msg.innerHTML='<span style="color:#c0392b">JSON 解析失败：'+escapeHtml(e.message)+'</span>'; return; }
-    try{
-      const sid=importSchoolDef(obj);
-      const grp=DMG_SCHOOLS[sid].group;
-      $('dmgGroup').value=grp;
-      dmgSchool=sid;
-      renderDmgSchoolArea();
-      $('dmgSchool').value=sid;
-      msg.innerHTML='<span style="color:#1a7f37">已导入/更新流派「'+escapeHtml(DMG_SCHOOLS[sid].name)+'」（'+escapeHtml(grp)+'组）并自动选中，点「从宝鉴读取」即可计算。</span>';
-      loadDmgOrder();
-    }catch(e){ msg.innerHTML='<span style="color:#c0392b">导入失败：'+escapeHtml(e.message)+'</span>'; }
-  };
-  $('dmgSchoolFileBtn').onclick=()=>$('dmgSchoolFile').click();
-  $('dmgSchoolFile').onchange=e=>{
-    const f=e.target.files[0]; if(!f) return;
-    const rd=new FileReader();
-    rd.onload=()=>{ try{ const obj=JSON.parse(rd.result); $('dmgSchoolJson').value=JSON.stringify(obj,null,2); $('dmgImportSchool').click(); }catch(err){ $('dmgImportMsg').innerHTML='<span style="color:#c0392b">文件解析失败：'+escapeHtml(err.message)+'</span>'; } };
-    rd.readAsText(f); e.target.value='';
-  };
-  /* 从 GitHub 同步流派清单：schools.json = {"schools":[{name,group,desc,rule,skills?}]} 或数组 */
-  function syncSchoolsFromGithub(){
-    const url=$('dmgSyncUrl').value.trim();
-    const msg=$('dmgSyncMsg');
-    if(!url){ msg.innerHTML='<span style="color:#c0392b">请先粘贴 GitHub 上的 schools.json raw 链接</span>'; return; }
-    msg.innerHTML='<span style="color:#666">正在从 GitHub 拉取…</span>';
-    fetch(url,{cache:'no-store'}).then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
-      .then(data=>{
-        const list = Array.isArray(data) ? data : (data && Array.isArray(data.schools) ? data.schools : null);
-        if(!list) throw new Error('清单格式应为 {"schools":[...]} 或数组');
-        let n=0; list.forEach(s=>{ if(s && s.name && s.rule){ importSchoolDef(s); n++; } });
-        try{ localStorage.setItem('dmgSchoolSyncUrl', url); }catch(e){}
-        renderDmgSchoolSel(); renderDmgSchoolArea();
-        msg.innerHTML='<span style="color:#1a7f37">已同步 '+n+' 个流派到本机（同组同名已覆盖更新）。</span>';
-      })
-      .catch(e=>{ msg.innerHTML='<span style="color:#c0392b">同步失败：'+escapeHtml(e.message)+'（请确认链接为 raw.githubusercontent.com 且文件可公开访问）</span>'; });
-  }
-  $('dmgSyncBtn').onclick=syncSchoolsFromGithub;
-  try{ const u=localStorage.getItem('dmgSchoolSyncUrl'); if(u) $('dmgSyncUrl').value=u; }catch(e){}
-  /* 上传全部用户流派到 GitHub Gist（self-service：填 Token 后点一次即推送，其他电脑粘贴 raw 链接同步） */
-  function uploadSchoolsToGithub(){
-    const token=$('dmgGhToken').value.trim();
-    const gistId=$('dmgGhGist').value.trim();
-    const msg=$('dmgUploadMsg');
-    if(!token){ msg.innerHTML='<span style="color:#c0392b">请先填写 GitHub Token</span>'; return; }
-    msg.innerHTML='<span style="color:#666">正在上传…</span>';
-    const arr=Object.values(DMG_SCHOOLS).filter(s=>!s.builtin).map(s=>({ id:s.id, name:s.name, group:s.group||'体', rule:s.rule, desc:s.desc||'', skills:s.skills||null }));
-    const content=JSON.stringify({ schools: arr }, null, 2);
-    const headers={ 'Content-Type':'application/json; charset=utf-8', 'Authorization':'token '+token, 'Accept':'application/vnd.github+json' };
-    const body=JSON.stringify({ files:{ 'schools.json':{ content } }, public:false });
-    const url=gistId? ('https://api.github.com/gists/'+encodeURIComponent(gistId)) : 'https://api.github.com/gists';
-    fetch(url, { method:gistId?'PATCH':'POST', headers, body })
-      .then(r=>{ if(!r.ok) return r.text().then(t=>Promise.reject(new Error('HTTP '+r.status+' '+(t||'').slice(0,160)))); return r.json(); })
-      .then(data=>{
-        const newId=data.id||gistId;
-        const owner=(data.owner&&data.owner.login)||'';
-        const raw='https://gist.githubusercontent.com/'+(owner?owner+'/':'')+newId+'/raw/schools.json';
-        $('dmgGhGist').value=newId;
-        try{ localStorage.setItem('dmgGhToken', token); localStorage.setItem('dmgGhGist', newId); }catch(e){}
-        $('dmgSyncUrl').value=raw;
-        try{ localStorage.setItem('dmgSchoolSyncUrl', raw); }catch(e){}
-        msg.innerHTML='<span style="color:#1a7f37">已上传 '+arr.length+' 个流派到 GitHub（Gist '+newId+'）</span>';
-      })
-      .catch(e=>{ msg.innerHTML='<span style="color:#c0392b">上传失败：'+escapeHtml(e.message)+'</span>'; });
-  }
-  $('dmgUploadBtn').onclick=uploadSchoolsToGithub;
-  try{ const t=localStorage.getItem('dmgGhToken'); if(t) $('dmgGhToken').value=t; const g=localStorage.getItem('dmgGhGist'); if(g) $('dmgGhGist').value=g; }catch(e){}
-  loadDmgOrder(true);
 
   setupCloudUI();
-  if(gistPullReady()){ setCloudStatus('正在从 Gist 拉取…'); pullFromCloud().then(()=>{ renderInventory(); renderGroups(); loadDmgOrder(true); }); }
+  if(gistPullReady()){ setCloudStatus('正在从 Gist 拉取…'); pullFromCloud().then(()=>{ renderInventory(); renderGroups(); }); }
 })();
 </script>
 </body>
